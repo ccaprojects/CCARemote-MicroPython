@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "CCARemote"
+version = "1.0.0"
+description = "BLE & WiFi Bibliothek für Raspberry Pi Pico 2 W – kompatibel mit der CCA Remote App"
+readme = "README.md"
+license = { file = "LICENSE" }
+authors = [{ name = "Andreas Eckhart" }]
+keywords = ["micropython", "pico", "ble", "wifi", "mqtt", "iot"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+
+[project.urls]
+Repository = "https://github.com/andreas-eckhart/CCARemote-RP-Pico"
+
+[tool.setuptools.packages.find]
+include = ["CCARemote*"]
