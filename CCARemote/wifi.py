@@ -181,6 +181,8 @@ class CCARemoteWiFi(CCARemote):
 
         if method == "GET" and path == "/":
             self._send_root(conn)
+        elif method == "GET" and path == "/status":
+            self._send_status(conn)
         elif path == "/command":
             # Command kann via POST (Body) oder GET (Query-String) kommen
             body = ""
@@ -220,6 +222,9 @@ class CCARemoteWiFi(CCARemote):
             "</body></html>"
         ).format(n=self._device_name, ip=ip, c=clients)
         self._send_response(conn, 200, "text/html", html)
+
+    def _send_status(self, conn):
+        self._send_json(conn, '{{"type":"CCARemote","device":"{}"}}'.format(self._device_name))
 
     def _send_display(self, conn):
         pairs = ['"{}":{}'.format(k, '"{}"'.format(v)) for k, v in self._display_values.items()]

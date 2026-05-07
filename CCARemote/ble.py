@@ -69,6 +69,7 @@ class CCARemoteBLE(CCARemote):
         self._password          = ""
         self._authenticated     = False
         self._restart_advertise = False  # wird in handle() ausgewertet
+        self._pending_auth_fail = False  # wird in handle() ausgewertet
 
     # ---------------------------------------------------------------- #
     #  Öffentliche Methoden                                             #
@@ -115,6 +116,16 @@ class CCARemoteBLE(CCARemote):
         if self._restart_advertise:
             self._restart_advertise = False
             self._start_advertising()
+
+        # Disconnect nach AUTH:FAIL – mit Delay damit Notify übertragen wird
+        if self._pending_auth_fail:
+            self._pending_auth_fail = False
+            time.sleep_ms(50)
+            if self._conn_handle is not None:
+                try:
+                    self._ble.gap_disconnect(self._conn_handle)
+                except Exception:
+                    pass
 
         if self._command_received:
             self._process_command(self._last_command)
@@ -172,13 +183,20 @@ class CCARemoteBLE(CCARemote):
                     if value == "AUTH:" + self._password:
                         self._authenticated = True
                         print("BLE Authentifizierung erfolgreich!")
+                        try:
+                            self._ble.gatts_write(self._display_handle, b"AUTH:OK")
+                            self._ble.gatts_notify(self._conn_handle, self._display_handle)
+                        except Exception:
+                            pass
                     else:
                         print("BLE Authentifizierung fehlgeschlagen! Verbindung wird getrennt.")
                         if self._conn_handle is not None:
                             try:
-                                self._ble.gap_disconnect(self._conn_handle)
+                                self._ble.gatts_write(self._display_handle, b"AUTH:FAIL")
+                                self._ble.gatts_notify(self._conn_handle, self._display_handle)
                             except Exception:
                                 pass
+                            self._pending_auth_fail = True  # Disconnect nach Delay in handle()
                     return
 
                 self._last_command     = value
