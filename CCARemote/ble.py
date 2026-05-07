@@ -204,7 +204,7 @@ class CCARemoteBLE(CCARemote):
 
     def _send_internal(self, key, value):
         """Sendet einen Wert an die App via BLE NOTIFY."""
-        if self._connected and self._display_handle is not None:
+        if self._connected and self._authenticated and self._display_handle is not None:
             msg = (key + ":" + value).encode("utf-8")
             try:
                 self._ble.gatts_write(self._display_handle, msg)
