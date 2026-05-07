@@ -70,6 +70,7 @@ class CCARemoteBLE(CCARemote):
         self._authenticated     = False
         self._restart_advertise = False  # wird in handle() ausgewertet
         self._pending_auth_fail = False  # wird in handle() ausgewertet
+        self._pending_resync    = False  # wird in handle() ausgewertet
 
     # ---------------------------------------------------------------- #
     #  Öffentliche Methoden                                             #
@@ -127,6 +128,11 @@ class CCARemoteBLE(CCARemote):
                 except Exception:
                     pass
 
+        # Display-Werte nach Verbindungsaufbau erneut senden
+        if self._pending_resync and self._connected and self._authenticated:
+            self._pending_resync = False
+            self._resync_display()
+
         if self._command_received:
             self._process_command(self._last_command)
             self._command_received = False
@@ -157,10 +163,11 @@ class CCARemoteBLE(CCARemote):
         """BLE Interrupt-Handler (wird vom BLE-Stack aufgerufen)."""
         if event == _IRQ_CENTRAL_CONNECT:
             conn_handle, addr_type, addr = data
-            self._conn_handle   = conn_handle
-            self._connected     = True
+            self._conn_handle    = conn_handle
+            self._connected      = True
             # Ohne Passwort sofort authentifiziert
-            self._authenticated = not bool(self._password)
+            self._authenticated  = not bool(self._password)
+            self._pending_resync = True
             print("Gerät verbunden!")
 
         elif event == _IRQ_CENTRAL_DISCONNECT:
@@ -181,7 +188,8 @@ class CCARemoteBLE(CCARemote):
                 # Authentifizierung prüfen wenn Passwort gesetzt
                 if self._password and not self._authenticated:
                     if value == "AUTH:" + self._password:
-                        self._authenticated = True
+                        self._authenticated  = True
+                        self._pending_resync = True
                         print("BLE Authentifizierung erfolgreich!")
                         try:
                             self._ble.gatts_write(self._display_handle, b"AUTH:OK")
@@ -212,3 +220,8 @@ class CCARemoteBLE(CCARemote):
                     self._ble.gatts_notify(self._conn_handle, self._display_handle)
             except Exception as e:
                 print("[CCA] BLE Sendefehler:", e)
+
+    def _resync_display(self):
+        """Sendet alle gespeicherten Display-Werte erneut an die App."""
+        for key, value in self._display_values.items():
+            self._send_internal(key, value)
