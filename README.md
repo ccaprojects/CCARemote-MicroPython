@@ -1,5 +1,3 @@
-# CCA Remote – Installationsanleitung für den Raspberry Pi Pico 2 W
-
 # CCARemote – MicroPython Bibliothek
 
 Flexible Steuerung von Mikrocontrollern über Bluetooth Low Energy (BLE) oder WLAN (WiFi). Die erforderliche App **CCA Remote** ist für Android und iOS kostenlos verfügbar.
