@@ -59,6 +59,9 @@ while True:
 
         remote.send("display1", slider1_val)
 
+        # Hardware-Typ (Pico 2W) an Label-Element der App senden
+        remote.send("label1", "Pico 2W")
+
     else:
         LED_BUTTON.value(0)
         LED_SLIDER.duty_u16(0)

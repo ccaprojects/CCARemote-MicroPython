@@ -1,7 +1,26 @@
 # CCA Remote – Installationsanleitung für den Raspberry Pi Pico 2 W
 
+# CCARemote – MicroPython Bibliothek
+
+Flexible Steuerung von Mikrocontrollern über Bluetooth Low Energy (BLE) oder WLAN (WiFi). Die erforderliche App **CCA Remote** ist für Android und iOS kostenlos verfügbar.
+Dieses Projekt wurde von der HTL Anichstraße (Abteilung Wirtschaftsingenieure – Betriebsinformatik) entwickelt.
+
+Unterstützte Protokolle:
+- **Bluetooth Low Energy (BLE)**
+- **WiFi (WLAN-Hotspot + HTTP)**
+- **MQTT** (in Arbeit)
+
+Unterstützte Hardware:
+- **ESP32** – natives BLE, WiFi, MQTT
+- **ESP8266** - WiFi, MQTT
+- **Arduino Uno / Nano** – BLE über HM-10-Modul (SoftwareSerial)
+- **Raspberry Pi Pico 2W** – natives BLE, WiFi, MQTT
+
 Dieses Dokument beschreibt die Installation der **CCARemote MicroPython-Bibliothek**
 für den Raspberry Pi Pico 2 W in **Thonny** und **VS Code**.
+
+> Für **ESP32, ESP8266 und Arduino** steht die Arduino-Bibliothek unter
+> [github.com/ccaprojects/CCARemote-Arduino](https://github.com/ccaprojects/CCARemote-Arduino) zur Verfügung.
 
 ---
 
@@ -190,6 +209,11 @@ remote.send("display1", 3.14159, 3)     # float mit 3 Nachkommastellen
 remote.send("display1", "Hallo!")       # str
 remote.send("display1:42")              # String-Form "key:value"
 ```
+
+> **Hinweis – Label-Element:** Neben Display-, Gauge-, Chart- und LED-Elementen kann
+> auch das **Label**-Element Werte empfangen. Wird `remote.send("label1", "Text")`
+> aufgerufen, aktualisiert die App den angezeigten Text des Labels dynamisch.
+> Die Element-ID muss dazu im Label-Editor der App eingetragen sein.
 
 ---
 
