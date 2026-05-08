@@ -1,8 +1,5 @@
 # CCARemote/__init__.py – Abstract base class
 #
-# Handles WiFi Access Point advertising, connection management 
-# and data transfer for the CCARemote App for remote control.
-#
 # Developed by Andreas E.
 # Version: 1.0.0 | 2026-05-07 | MIT – see LICENSE
 #
@@ -126,27 +123,29 @@ class CCARemote:
             remote.send("display1:42")   # String-Form
         """
         if value is None:
-            # "key:value"-Form
             colon = key.find(":")
             if colon > 0:
-                k = key[:colon]
-                v = key[colon + 1:]
-                if self._debug_mode & CCA_DEBUG_OUT:
-                    print("[CCA] OUT", k, "=", v)
-                self._send_internal(k, v)
+                self._send_if_changed(key[:colon], key[colon + 1:])
             else:
-                if self._debug_mode & CCA_DEBUG_OUT:
-                    print("[CCA] OUT", key)
-                self._send_internal(key, "")
+                self._send_if_changed(key, "")
         else:
             if isinstance(value, float):
                 d = decimals if decimals is not None else 1
                 str_val = "{:.{}f}".format(value, d)
             else:
                 str_val = str(value)
-            if self._debug_mode & CCA_DEBUG_OUT:
+            self._send_if_changed(key, str_val)
+
+    def _send_if_changed(self, key, str_val):
+        if self._display_values.get(key) == str_val:
+            return
+        self._display_values[key] = str_val
+        if self._debug_mode & CCA_DEBUG_OUT:
+            if str_val:
                 print("[CCA] OUT", key, "=", str_val)
-            self._send_internal(key, str_val)
+            else:
+                print("[CCA] OUT", key)
+        self._send_internal(key, str_val)
 
     # ---------------------------------------------------------------- #
     #  Abstrakte Methoden – werden in Unterklassen überschrieben        #
