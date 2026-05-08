@@ -98,13 +98,18 @@ while True:
 
 ### WiFi-Verbindung (Hotspot)
 
+> ⚠️ **Einschränkung:** Der MicroPython-Treiber des CYW43439-Chips unterstützt
+> WPA2-Verschlüsselung im Access-Point-Modus **nicht**. Der Hotspot startet immer
+> als **offenes Netzwerk** – ein übergebenes Passwort wird ignoriert. Wer eine
+> gesicherte Verbindung benötigt, sollte stattdessen **BLE** verwenden.
+
 ```python
 from CCARemote.wifi import CCARemoteWiFi
 from machine import Pin
 import time
 
 remote = CCARemoteWiFi("MeinPico")
-remote.begin("geheim1234")           # WLAN-Passwort (leer = offenes Netz)
+remote.begin()                        # Kein Passwort – WiFi ist immer offen
 
 remote.receive("switch1", bool)
 

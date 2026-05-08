@@ -1,15 +1,17 @@
-# CCARemote/ble.py – Bluetooth Low Energy (BLE) Implementierung
+# CCARemote/ble.py – Bluetooth Low Energy (BLE) Implementation
 #
-# Basierend auf der Diplomarbeit von L. Eder und E. Duyar (HTL Anichstraße)
-# Erweitert von A. Eckhart mit freundlicher Genehmigung der Originalautoren.
+# Handles BLE advertising, connection management and data transfer
+# for the CCARemote App for remote control.
 #
-# Version: 1.0.0 | 2026-05-07 | MIT – siehe LICENSE
+# Developed by Andreas E.
+# Version: 1.0.0 | 2026-05-07 | MIT – see LICENSE
 #
-# Voraussetzung:
-#   Raspberry Pi Pico 2 W mit MicroPython ≥ 1.23
-#   Das bluetooth-Modul ist im Standard-Firmware enthalten.
+# Requirements:
+#   Raspberry Pi Pico 2 W with MicroPython >= 1.23
+#   The bluetooth module is included in the standard firmware.
 
 import bluetooth
+import time
 from . import CCARemote
 
 # BLE IRQ Event-Codes (MicroPython bluetooth-Modul)
@@ -168,14 +170,16 @@ class CCARemoteBLE(CCARemote):
             # Ohne Passwort sofort authentifiziert
             self._authenticated  = not bool(self._password)
             self._pending_resync = True
-            print("Gerät verbunden!")
+            if self._debug_mode:
+                print("[CCA] Verbindung hergestellt")
 
         elif event == _IRQ_CENTRAL_DISCONNECT:
             self._conn_handle       = None
             self._connected         = False
             self._authenticated     = False
             self._restart_advertise = True  # Neustart in handle() – nicht hier!
-            print("Gerät getrennt!")
+            if self._debug_mode:
+                print("[CCA] Verbindung getrennt")
 
         elif event == _IRQ_GATTS_WRITE:
             conn_handle, attr_handle = data

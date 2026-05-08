@@ -1,14 +1,15 @@
-# CCARemote/__init__.py – Abstrakte Basisklasse
+# CCARemote/__init__.py – Abstract base class
 #
-# Basierend auf der Diplomarbeit von L. Eder und E. Duyar (HTL Anichstraße)
-# Erweitert von A. Eckhart mit freundlicher Genehmigung der Originalautoren.
+# Handles WiFi Access Point advertising, connection management 
+# and data transfer for the CCARemote App for remote control.
 #
-# Version: 1.0.0 | 2026-05-07 | MIT – siehe LICENSE
+# Developed by Andreas E.
+# Version: 1.0.0 | 2026-05-07 | MIT – see LICENSE
 #
-# Verwendung:
-#   from CCARemote.ble  import CCARemoteBLE   # für BLE-Verbindung
-#   from CCARemote.wifi import CCARemoteWiFi  # für WiFi-Verbindung
-#   from CCARemote.mqtt import CCARemoteMQTT  # für MQTT-Verbindung
+# Usage:
+#   from CCARemote.ble  import CCARemoteBLE   # for BLE-Connection
+#   from CCARemote.wifi import CCARemoteWiFi  # for WiFi-Connection
+#   from CCARemote.mqtt import CCARemoteMQTT  # for MQTT-Connection
 
 # ------------------------------------------------------------------ #
 #  Debug-Modus Konstanten (kombinierbar mit |)                        #
@@ -164,6 +165,11 @@ class CCARemote:
     def _send_internal(self, key, value):
         """Intern – wird von Unterklassen überschrieben."""
         raise NotImplementedError
+
+    def _resync_display(self):
+        """Sendet alle gespeicherten Display-Werte erneut an die App."""
+        for key, value in self._display_values.items():
+            self._send_internal(key, value)
 
     # ---------------------------------------------------------------- #
     #  Interne Hilfsmethode                                             #

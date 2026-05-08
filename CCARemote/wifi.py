@@ -1,13 +1,14 @@
-# CCARemote/wifi.py – WiFi Access Point + HTTP-Server Implementierung
+# CCARemote/wifi.py – WiFi Access Point + HTTP-Server Implementation
 #
-# Basierend auf der Diplomarbeit von L. Eder und E. Duyar (HTL Anichstraße)
-# Erweitert von A. Eckhart mit freundlicher Genehmigung der Originalautoren.
+# Handles WiFi Access Point advertising, connection management 
+# and data transfer for the CCARemote App for remote control.
 #
-# Version: 1.0.0 | 2026-05-07 | MIT – siehe LICENSE
+# Developed by Andreas E.
+# Version: 1.0.0 | 2026-05-07 | MIT – see LICENSE
 #
-# Voraussetzung:
-#   Raspberry Pi Pico 2 W mit MicroPython ≥ 1.23
-#   Die Module network und socket sind im Standard-Firmware enthalten.
+# Requirements:
+#   Raspberry Pi Pico 2 W with MicroPython >= 1.23
+#   The network module is included in the standard firmware.
 
 import network
 import socket
@@ -58,33 +59,36 @@ class CCARemoteWiFi(CCARemote):
         print("\nCCA Remote startet (WiFi)...")
         print("Gerätename:", self._device_name)
 
+        if wifi_password:
+            print("[CCA] HINWEIS: WPA2-Verschlüsselung wird von MicroPython auf dem Pico W")
+            print("       im AP-Modus nicht unterstützt. Das Passwort wird ignoriert.")
+            print("       Der Hotspot startet als offenes Netzwerk.")
+
         self._ap = network.WLAN(network.AP_IF)
         self._ap.active(False)
-        time.sleep(0.3)
+        time.sleep(0.5)
         self._ap.active(True)
 
-        if wifi_password:
-            # WPA2-PSK (security=4)
-            self._ap.config(ssid=self._device_name, password=wifi_password, security=4)
-        else:
-            self._ap.config(ssid=self._device_name, security=0)
+        time.sleep(1.0)
+        self._ap.config(ssid=self._device_name, security=0)
 
-        # Warten bis AP aktiv ist (max. 10 s)
-        for _ in range(20):
-            if self._ap.active():
-                break
+        # Warten bis SSID gesetzt ist (max. 5 s)
+        for _ in range(10):
+            try:
+                if self._ap.config("ssid") == self._device_name:
+                    break
+            except Exception:
+                pass
             time.sleep(0.5)
 
         if not self._ap.active():
-            print("WiFi AP Start fehlgeschlagen!")
+            print("[CCA] FEHLER: WiFi AP Start fehlgeschlagen!")
             return
 
         self._wifi_enabled = True
         ip = self._ap.ifconfig()[0]
-        print("WiFi AP:", self._device_name)
+        print("WiFi AP:", self._device_name, "(offen)")
         print("IP-Adresse:", ip)
-        if wifi_password:
-            print("Passwort:", wifi_password)
 
         # Non-blocking TCP-Server auf Port 80
         self._server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -103,13 +107,12 @@ class CCARemoteWiFi(CCARemote):
         if not self._wifi_enabled or self._server_socket is None:
             return
 
-        # Verbindungsstatus überwachen und Meldung ausgeben
+        # Verbindungsstatus überwachen und im Debug-Modus ausgeben
         now_connected = self.is_connected()
-        if now_connected and not self._prev_connected:
-            print("Gerät verbunden!")
-        elif not now_connected and self._prev_connected:
-            print("Gerät getrennt!")
-        self._prev_connected = now_connected
+        if now_connected != self._prev_connected:
+            self._prev_connected = now_connected
+            if self._debug_mode:
+                print("[CCA]", "Verbindung hergestellt" if now_connected else "Verbindung getrennt")
 
         # Alle ausstehenden Verbindungen in einem Durchlauf abarbeiten
         while True:
@@ -194,7 +197,11 @@ class CCARemoteWiFi(CCARemote):
             elif method == "GET" and query:
                 # Query-String "key=value&key2=value2" → "key:value,key2:value2"
                 body = ",".join(p.replace("=", ":", 1) for p in query.split("&") if p)
-            if body:
+            if body == "disconnect:1":
+                if self._debug_mode:
+                    print("[CCA] Verbindung getrennt (App)")
+                self._prev_connected = False
+            elif body:
                 self._process_command(body)
             self._send_json(conn, '{"status":"ok"}')
         elif method == "GET" and path == "/display":

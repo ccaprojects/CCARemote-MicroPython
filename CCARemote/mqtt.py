@@ -1,14 +1,14 @@
-# CCARemote/mqtt.py – MQTT-Client Implementierung
+# CCARemote/mqtt.py – MQTT-Client Implementation
 #
-# Basierend auf der Diplomarbeit von L. Eder und E. Duyar (HTL Anichstraße)
-# Erweitert von A. Eckhart mit freundlicher Genehmigung der Originalautoren.
+# Handles MQTT support for the CCARemote App for remote control.
 #
-# Version: 1.0.0 | 2026-05-07 | MIT – siehe LICENSE
+# Developed by Andreas E.
+# Version: 1.0.0 | 2026-05-07 | MIT – see LICENSE
 #
-# Voraussetzungen:
-#   Raspberry Pi Pico 2 W mit MicroPython ≥ 1.23
-#   umqtt.simple ist in der Standard-MicroPython-Firmware für Pico W enthalten.
-#   Falls nicht vorhanden:
+# Requirements:
+#   Raspberry Pi Pico 2 W with MicroPython >= 1.23
+#   The umqtt.simple module is included in the standard firmware.
+#   If not available:
 #     import mip
 #     mip.install("umqtt.simple")
 
