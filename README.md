@@ -173,7 +173,7 @@ while True:
 | `remote.begin(...)` | Verbindung starten (Parameter je nach Typ) |
 | `remote.handle()` | **Pflicht in der Hauptschleife!** Befehle verarbeiten |
 | `remote.is_connected()` | `True` wenn App verbunden |
-| `remote.receive("id", typ)` | Element-ID mit Typ verknüpfen (`bool`, `int`, `float`, `str`) |
+| `remote.receive("id", typ)` | Element-ID mit Typ verknüpfen: `bool` (Button, Switch), `int` (Slider, Joystick-Achse), `float`, `str` (Input) |
 | `remote.get("id", default)` | Zuletzt empfangenen Wert abrufen |
 | `remote.send("id", wert)` | Wert an Display-Element der App senden |
 | `remote.on_command("id", cb)` | Callback für Befehl registrieren |
@@ -189,6 +189,27 @@ remote.debug(CCA_DEBUG_IN)    # nur empfangene Werte
 remote.debug(CCA_DEBUG_OUT)   # nur gesendete Werte
 remote.debug(CCA_DEBUG_OFF)   # kein Output
 ```
+
+### Elemente und Typen
+
+| Element | Typ | Richtung | Hinweis |
+|---|---|---|---|
+| Button | `bool` | App → Pico | `True` = gedrückt |
+| Switch | `bool` | App → Pico | `True` = ein |
+| Slider | `int` | App → Pico | Bereich in der App einstellbar (Standard 0–255) |
+| Joystick | `int` | App → Pico | X und Y als separate Element-IDs |
+| Input | `str` | App → Pico | Freier Text |
+| Display | `send()` | Pico → App | Messwert anzeigen |
+| Gauge / Bar | `send()` | Pico → App | Balken / Kreisbogen |
+| Chart | `send()` | Pico → App | Liniendiagramm |
+| Status-LED | `send()` | Pico → App | Ganzzahl 0–3 |
+| Label | `send()` | Pico → App | Text (optional, nur wenn Element-ID gesetzt) |
+
+> **Joystick:** Jede Achse hat eine eigene Element-ID:
+> ```python
+> remote.receive("axisX", int)  # Joystick X (−255 – +255)
+> remote.receive("axisY", int)  # Joystick Y (−255 – +255)
+> ```
 
 ### Callbacks
 
