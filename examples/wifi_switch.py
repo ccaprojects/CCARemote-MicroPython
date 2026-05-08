@@ -6,15 +6,16 @@
 #  Raspberry Pi Pico 2 W  |  MicroPython ≥ 1.23
 # =============================================================
 
-from CCARemote.wifi import CCARemoteWiFi
 from machine import Pin
 import time
 
-# Für BLE-Verbindung stattdessen:
+# Für BLE-Verbindung:
 # from CCARemote.ble import CCARemoteBLE
-# remote = CCARemoteBLE("MeinName")
+# remote = CCARemoteBLE("MeinName")   # Namen hier anpassen!
 
-remote = CCARemoteWiFi("MeinName")  # Namen hier anpassen!
+# Für WiFi-Verbindung stattdessen:
+from CCARemote.wifi import CCARemoteWiFi
+remote = CCARemoteWiFi("MeinName")
 
 LED_PIN = Pin("LED", Pin.OUT)       # Onboard-LED des Pico 2 W
 # Externe LED: LED_PIN = Pin(15, Pin.OUT)
@@ -24,7 +25,7 @@ LED_PIN = Pin("LED", Pin.OUT)       # Onboard-LED des Pico 2 W
 #  Setup                                                            #
 # ---------------------------------------------------------------- #
 remote.debug()
-remote.begin("geheim1234")  # WLAN-Hotspot-Passwort (leer = offenes Netzwerk)
+remote.begin()              # BLE starten (kein Passwort)
 
 remote.receive("switch1", bool)
 
@@ -33,7 +34,7 @@ remote.receive("switch1", bool)
 #  Hauptschleife                                                    #
 # ---------------------------------------------------------------- #
 while True:
-    remote.handle()     # HTTP-Anfragen verarbeiten (erforderlich!)
+    remote.handle()     # Empfangene Befehle verarbeiten (erforderlich!)
 
     if remote.is_connected():
         LED_PIN.value(1 if remote.get("switch1", False) else 0)

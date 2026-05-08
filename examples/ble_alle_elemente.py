@@ -7,15 +7,16 @@
 #  Raspberry Pi Pico 2 W  |  MicroPython ≥ 1.23
 # =============================================================
 
-from CCARemote.ble import CCARemoteBLE
 from machine import Pin, PWM
 import time
+
+# Für BLE-Verbindung:
+from CCARemote.ble import CCARemoteBLE
+remote = CCARemoteBLE("MeinName")   # Namen hier anpassen!
 
 # Für WiFi-Verbindung stattdessen:
 # from CCARemote.wifi import CCARemoteWiFi
 # remote = CCARemoteWiFi("MeinName")
-
-remote = CCARemoteBLE("MeinName")   # Namen hier anpassen!
 
 LED_BUTTON = Pin("LED",  Pin.OUT)   # Onboard-LED  → Button-Element
 LED_SLIDER = PWM(Pin(15))           # PWM-LED (GP15) → Slider-Element
@@ -68,6 +69,9 @@ while True:
 
         # Slider-Wert an Display-Element der App senden
         remote.send("display1", slider1_val)
+
+        # Hardware-Typ (Pico 2W) an Label-Element der App senden
+        remote.send("label1", "Pico 2W")
 
     else:
         # Alle Ausgaben auf sicheren Zustand setzen

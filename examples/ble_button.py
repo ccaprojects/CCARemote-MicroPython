@@ -6,15 +6,16 @@
 #  Raspberry Pi Pico 2 W  |  MicroPython ≥ 1.23
 # =============================================================
 
-from CCARemote.ble import CCARemoteBLE
 from machine import Pin
 import time
+
+# Für BLE-Verbindung:
+from CCARemote.ble import CCARemoteBLE
+remote = CCARemoteBLE("MeinName")   # Namen hier anpassen!
 
 # Für WiFi-Verbindung stattdessen:
 # from CCARemote.wifi import CCARemoteWiFi
 # remote = CCARemoteWiFi("MeinName")
-
-remote = CCARemoteBLE("MeinName")   # Namen hier anpassen!
 
 LED_PIN = Pin("LED", Pin.OUT)       # Onboard-LED des Pico 2 W
 # Externe LED: LED_PIN = Pin(15, Pin.OUT)

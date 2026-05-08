@@ -6,16 +6,17 @@
 #  Raspberry Pi Pico 2 W  |  MicroPython ≥ 1.23
 # =================================
 
-from CCARemote.ble import CCARemoteBLE
 from machine import Pin, PWM
 import time
 import random
 
+# Für BLE-Verbindung:
+from CCARemote.ble import CCARemoteBLE
+remote = CCARemoteBLE("Pico-MeinBLE")   # Namen hier anpassen!
+
 # Für WiFi-Verbindung stattdessen:
 # from CCARemote.wifi import CCARemoteWiFi
-# remote = CCARemoteWiFi("Pico-MeinWiFi")  # Namen hier anpassen!
-
-remote = CCARemoteBLE("Pico-MeinBLE")   # Namen hier anpassen!
+# remote = CCARemoteWiFi("Pico-MeinWiFi")
 
 # ---------------------------------------------------------------- #
 #  Setup                                                            #
