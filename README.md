@@ -286,6 +286,4 @@ mip.install("umqtt.simple")
 
 ---
 
-*Basierend auf der Diplomarbeit von L. Eder und E. Duyar (HTL Anichstraße)*  
-*Erweitert von A. Eckhart mit freundlicher Genehmigung der Originalautoren.*  
-*Version 1.0.0 | 2026-05-07 | MIT-Lizenz*
+*Entwickwelt von A. Eckhart | Version 1.0.0 | 2026-05-07 | MIT-Lizenz*
