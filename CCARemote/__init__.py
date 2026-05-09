@@ -1,12 +1,14 @@
 # CCARemote/__init__.py – Abstract base class
 #
-# Developed by Andreas E.
-# Version: 1.0.0 | 2026-05-07 | MIT – see LICENSE
-#
 # Usage:
 #   from CCARemote.ble  import CCARemoteBLE   # for BLE-Connection
 #   from CCARemote.wifi import CCARemoteWiFi  # for WiFi-Connection
 #   from CCARemote.mqtt import CCARemoteMQTT  # for MQTT-Connection
+#
+# Developed by A. Eckhart (HTL Anichstraße) - MIT – see LICENSE
+
+# Version der Bibliothek
+__version__ = "1.0.0"
 
 # ------------------------------------------------------------------ #
 #  Debug-Modus Konstanten (kombinierbar mit |)                        #

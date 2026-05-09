@@ -3,8 +3,7 @@
 # Handles BLE advertising, connection management and data transfer
 # for the CCARemote App for remote control.
 #
-# Developed by Andreas E.
-# Version: 1.0.0 | 2026-05-07 | MIT – see LICENSE
+# Developed by A. Eckhart (HTL Anichstraße) - MIT – see LICENSE
 #
 # Requirements:
 #   Raspberry Pi Pico 2 W with MicroPython >= 1.23
