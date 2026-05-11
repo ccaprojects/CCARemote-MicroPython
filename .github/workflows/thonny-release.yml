@@ -1,0 +1,19 @@
+name: Create Thonny ZIP
+
+on:
+  release:
+    types: [created]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Create Thonny ZIP
+        run: zip -r CCARemote-Thonny.zip pyproject.toml CCARemote/
+
+      - name: Upload to Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: CCARemote-Thonny.zip
