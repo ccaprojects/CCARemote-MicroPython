@@ -42,25 +42,46 @@ für den Raspberry Pi Pico 2 W in **Thonny** und **VS Code**.
 
 ## Installation der Bibliothek
 
-### Option A – Thonny (empfohlen für Einsteiger)
+### Option A – ZIP-Datei via Thonny *(empfohlen)*
 
-1. Thonny starten und den Pico 2 W verbinden
-2. Im Menü: **Datei → Öffnen** → `micropython/CCARemote/` (diesen Ordner öffnen)
-3. Im Thonny-Dateimanager (unten rechts: „Raspberry Pi Pico"):
-   - Rechtsklick → **Neuer Ordner** → `lib` erstellen (falls noch nicht vorhanden)
-   - Rechtsklick auf `lib` → **Neuer Ordner** → `CCARemote` erstellen
-4. Alle 4 Dateien aus `micropython/CCARemote/` auf den Pico kopieren:
-   - `__init__.py`
-   - `ble.py`
-   - `wifi.py`
-   - `mqtt.py`
-   
-   Ziel auf dem Pico: `/lib/CCARemote/`
+Die einfachste Methode: ZIP von GitHub herunterladen und direkt über den Thonny-Paketmanager installieren – kein manuelles Entpacken nötig.
 
-**Alternativ per Drag & Drop im Thonny-Dateimanager:**
-Den gesamten Ordner `CCARemote/` in `/lib/` auf dem Pico ziehen.
+**Schritt 1 – ZIP herunterladen**
 
-### Option B – VS Code mit MicroPico Extension
+1. Auf [github.com/ccaprojects/CCARemote-MicroPython](https://github.com/ccaprojects/CCARemote-MicroPython) gehen
+2. **Releases** → neueste Version → `CCARemote-MicroPython-vX.X.X.zip` herunterladen
+
+**Schritt 2 – In Thonny installieren**
+
+1. Thonny starten und den Pico 2 W per USB verbinden
+2. Sicherstellen dass unten rechts **MicroPython (Raspberry Pi Pico)** als Interpreter ausgewählt ist
+3. Menü öffnen:
+   - DE: **Werkzeuge → Pakete verwalten**
+   - EN: **Tools → Manage packages**
+4. Im Paketmanager-Dialog unten auf:
+   - DE: **Lokale Datei installieren**
+   - EN: **Install from local file**
+5. Die heruntergeladene `.zip`-Datei auswählen → **OK**
+
+Thonny installiert die Bibliothek automatisch unter `/lib/CCARemote/` auf dem Pico.
+
+### Option B – Manuell via Thonny-Dateimanager
+
+1. ZIP von GitHub herunterladen und entpacken
+2. Thonny starten und den Pico 2 W per USB verbinden
+3. Menü:
+   - DE: **Ansicht → Dateien**
+   - EN: **View → Files**
+4. Links (PC) zum entpackten `CCARemote/`-Ordner navigieren
+5. Rechts (Pico) in `/lib/` wechseln – falls nicht vorhanden:
+   Rechtsklick → **Neuer Ordner** / **New directory** → `lib`
+6. Rechtsklick auf den `CCARemote/`-Ordner (PC-Seite) →
+   - DE: **Hochladen nach /lib/**
+   - EN: **Upload to /lib/**
+
+Ergebnis auf dem Pico: `/lib/CCARemote/__init__.py`, `ble.py`, `wifi.py`, `mqtt.py`
+
+### Option C – VS Code mit MicroPico Extension
 
 1. Extension **MicroPico** installieren (ID: `paulober.pico-w-go`)
 2. `micropython/CCARemote/`-Ordner in VS Code öffnen
