@@ -1,9 +1,0 @@
-{
-    "urls": [
-        ["CCARemote/__init__.py", "github:andreas-eckhart/CCARemote-RP-Pico/CCARemote/__init__.py"],
-        ["CCARemote/ble.py",      "github:andreas-eckhart/CCARemote-RP-Pico/CCARemote/ble.py"],
-        ["CCARemote/wifi.py",     "github:andreas-eckhart/CCARemote-RP-Pico/CCARemote/wifi.py"],
-        ["CCARemote/mqtt.py",     "github:andreas-eckhart/CCARemote-RP-Pico/CCARemote/mqtt.py"]
-    ],
-    "version": "1.0.0"
-}
