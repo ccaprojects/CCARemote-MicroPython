@@ -8,7 +8,7 @@
 # Developed by A. Eckhart (HTL Anichstraße) - MIT – see LICENSE
 
 # Version der Bibliothek
-__version__ = "1.0.0"
+__version__ = "1.1.0"
 
 # ------------------------------------------------------------------ #
 #  Debug-Modus Konstanten (kombinierbar mit |)                        #
@@ -102,6 +102,48 @@ class CCARemote:
         self._callbacks[cmd] = _handler
         if self._debug_mode != CCA_DEBUG_OFF:
             print("Variable gebunden:", cmd, "({})".format(value_type.__name__))
+
+    def receive_color(self, cmd):
+        """Verknüpft eine Color-Picker-ID für automatische R/G/B-Konvertierung.
+
+        Werte abrufen mit: r, g, b = remote.get_color("color1")
+
+        Wert-Format der App: R;G;B  (z.B. "255;128;0")
+
+        Args:
+            cmd: Element-ID des Color-Pickers aus der CCA Remote App
+        """
+        self._values[cmd] = (0, 0, 0)
+
+        def _handler(value):
+            try:
+                parts = value.split(";")
+                r = max(0, min(255, int(parts[0]))) if len(parts) > 0 else 0
+                g = max(0, min(255, int(parts[1]))) if len(parts) > 1 else 0
+                b = max(0, min(255, int(parts[2]))) if len(parts) > 2 else 0
+                self._values[cmd] = (r, g, b)
+            except (ValueError, IndexError):
+                self._values[cmd] = (0, 0, 0)
+
+            if self._debug_mode & CCA_DEBUG_IN:
+                r_v, g_v, b_v = self._values[cmd]
+                print("[CCA] IN  {} = R:{} G:{} B:{}".format(cmd, r_v, g_v, b_v))
+
+        self._callbacks[cmd] = _handler
+        if self._debug_mode != CCA_DEBUG_OFF:
+            print("Farbe gebunden: {} (r,g,b)".format(cmd))
+
+    def get_color(self, cmd, default=(0, 0, 0)):
+        """Gibt den zuletzt empfangenen RGB-Farbwert zurück.
+
+        Returns:
+            Tuple (r, g, b) mit Ganzzahlen 0–255
+
+        Beispiel:
+            r, g, b = remote.get_color("color1")
+            led_r.duty_u16(r * 257)
+        """
+        return self._values.get(cmd, default)
 
     def get(self, cmd, default=None):
         """Gibt den zuletzt empfangenen Wert für eine Element-ID zurück.
