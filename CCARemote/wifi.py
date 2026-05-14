@@ -53,40 +53,31 @@ class CCARemoteWiFi(CCARemote):
         """Startet den WiFi Access Point und den HTTP-Server auf Port 80.
 
         Args:
-            wifi_password: WLAN-Passwort (leer = offenes Netzwerk).
+            wifi_password: WLAN-Passwort (leer = offenes Netzwerk, sonst WPA2).
         """
         print("\nCCA Remote startet (WiFi)...")
         print("Gerätename:", self._device_name)
 
-        if wifi_password:
-            print("[CCA] HINWEIS: WPA2-Verschlüsselung wird von MicroPython auf dem Pico W")
-            print("       im AP-Modus nicht unterstützt. Das Passwort wird ignoriert.")
-            print("       Der Hotspot startet als offenes Netzwerk.")
-
-        self._ap = network.WLAN(network.AP_IF)
+        self._ap = network.WLAN(network.WLAN.IF_AP)
         self._ap.active(False)
         time.sleep(0.5)
+
+        cfg = dict(ssid=self._device_name, channel=6)
+        if wifi_password:
+            cfg["password"] = wifi_password
+            cfg["security"] = network.WLAN.SEC_WPA_WPA2
+        else:
+            cfg["security"] = 0
+        self._ap.config(**cfg)
+
         self._ap.active(True)
-
-        time.sleep(1.0)
-        self._ap.config(ssid=self._device_name, security=0)
-
-        # Warten bis SSID gesetzt ist (max. 5 s)
-        for _ in range(10):
-            try:
-                if self._ap.config("ssid") == self._device_name:
-                    break
-            except Exception:
-                pass
-            time.sleep(0.5)
-
-        if not self._ap.active():
-            print("[CCA] FEHLER: WiFi AP Start fehlgeschlagen!")
-            return
+        while not self._ap.active():
+            time.sleep(0.1)
 
         self._wifi_enabled = True
         ip = self._ap.ifconfig()[0]
-        print("WiFi AP:", self._device_name, "(offen)")
+        enc = "WPA2" if wifi_password else "offen"
+        print("WiFi AP:", self._device_name, "(" + enc + ")")
         print("IP-Adresse:", ip)
 
         # Non-blocking TCP-Server auf Port 80
