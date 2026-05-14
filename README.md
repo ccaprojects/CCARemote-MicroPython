@@ -6,13 +6,12 @@ Dieses Projekt wurde von der HTL Anichstraße (Abteilung Wirtschaftsingenieure �
 Unterstützte Protokolle:
 - **Bluetooth Low Energy (BLE)**
 - **WiFi (WLAN-Hotspot + HTTP)**
-- **MQTT** (in Arbeit)
 
 Unterstützte Hardware:
-- **ESP32** – natives BLE, WiFi, MQTT
-- **ESP8266** - WiFi, MQTT
+- **ESP32** – natives BLE, WiFi
+- **ESP8266** – WiFi
 - **Arduino Uno / Nano** – BLE über HM-10-Modul (SoftwareSerial)
-- **Raspberry Pi Pico 2W** – natives BLE, WiFi, MQTT
+- **Raspberry Pi Pico 2W** – natives BLE, WiFi
 
 Dieses Dokument beschreibt die Installation der **CCARemote MicroPython-Bibliothek**
 für den Raspberry Pi Pico 2 W in **Thonny** und **VS Code**.
@@ -79,7 +78,7 @@ Thonny installiert die Bibliothek automatisch unter `/lib/CCARemote/` auf dem Pi
    - DE: **Hochladen nach /lib/**
    - EN: **Upload to /lib/**
 
-Ergebnis auf dem Pico: `/lib/CCARemote/__init__.py`, `ble.py`, `wifi.py`, `mqtt.py`
+Ergebnis auf dem Pico: `/lib/CCARemote/__init__.py`, `ble.py`, `wifi.py`
 
 ### Option C – VS Code mit MicroPico Extension
 
@@ -89,7 +88,7 @@ Ergebnis auf dem Pico: `/lib/CCARemote/__init__.py`, `ble.py`, `wifi.py`, `mqtt.
 4. Alternativ: Rechtsklick auf den `CCARemote`-Ordner → **Upload folder to Pico**
 5. Bibliothek muss sich auf dem Pico unter `/lib/CCARemote/` befinden
 
-### Option C – mpremote (Kommandozeile)
+### Option D – mpremote (Kommandozeile)
 
 ```bash
 pip install mpremote
@@ -100,7 +99,6 @@ mpremote mkdir /lib/CCARemote
 mpremote cp micropython/CCARemote/__init__.py :/lib/CCARemote/__init__.py
 mpremote cp micropython/CCARemote/ble.py      :/lib/CCARemote/ble.py
 mpremote cp micropython/CCARemote/wifi.py     :/lib/CCARemote/wifi.py
-mpremote cp micropython/CCARemote/mqtt.py     :/lib/CCARemote/mqtt.py
 ```
 
 ---
@@ -160,27 +158,6 @@ while True:
     time.sleep_ms(10)
 ```
 
-### MQTT-Verbindung
-
-```python
-from CCARemote.mqtt import CCARemoteMQTT
-from machine import Pin
-import time
-
-remote = CCARemoteMQTT("MeinPico")
-remote.begin("MeinWLAN", "wlanpasswort", "192.168.1.100")
-
-remote.receive("switch1", bool)
-
-led = Pin("LED", Pin.OUT)
-
-while True:
-    remote.handle()
-    if remote.is_connected():
-        led.value(1 if remote.get("switch1", False) else 0)
-    time.sleep_ms(10)
-```
-
 ---
 
 ## API-Referenz
@@ -193,7 +170,9 @@ while True:
 | `remote.handle()` | **Pflicht in der Hauptschleife!** Befehle verarbeiten |
 | `remote.is_connected()` | `True` wenn App verbunden |
 | `remote.receive("id", typ)` | Element-ID mit Typ verknüpfen: `bool` (Button, Switch), `int` (Slider, Joystick-Achse), `float`, `str` (Input) |
+| `remote.receive_color("id")` | Color-Picker-Element registrieren |
 | `remote.get("id", default)` | Zuletzt empfangenen Wert abrufen |
+| `remote.get_color("id")` | RGB-Werte als Tupel `(r, g, b)` abrufen (je 0–255) |
 | `remote.send("id", wert)` | Wert an Display-Element der App senden |
 | `remote.on_command("id", cb)` | Callback für Befehl registrieren |
 | `remote.debug()` | Debug-Ausgaben im REPL aktivieren |
@@ -209,20 +188,26 @@ remote.debug(CCA_DEBUG_OUT)   # nur gesendete Werte
 remote.debug(CCA_DEBUG_OFF)   # kein Output
 ```
 
-### Elemente und Typen
+### Steuerelemente (App → Pico)
 
-| Element | Typ | Richtung | Hinweis |
+| Element | Methode | Typ | Hinweis |
 |---|---|---|---|
-| Button | `bool` | App → Pico | `True` = gedrückt |
-| Switch | `bool` | App → Pico | `True` = ein |
-| Slider | `int` | App → Pico | Bereich in der App einstellbar (Standard 0–255) |
-| Joystick | `int` | App → Pico | X und Y als separate Element-IDs |
-| Input | `str` | App → Pico | Freier Text |
-| Display | `send()` | Pico → App | Messwert anzeigen |
-| Gauge / Bar | `send()` | Pico → App | Balken / Kreisbogen |
-| Chart | `send()` | Pico → App | Liniendiagramm |
-| Status-LED | `send()` | Pico → App | Ganzzahl 0–3 |
-| Label | `send()` | Pico → App | Text (optional, nur wenn Element-ID gesetzt) |
+| Button | `receive()` | `bool` | `True` = gedrückt |
+| Switch | `receive()` | `bool` | `True` = ein |
+| Slider | `receive()` | `int` | Bereich in der App einstellbar (Standard 0–255) |
+| Joystick | `receive()` | `int` | X und Y als separate Element-IDs |
+| Input | `receive()` | `str` | Freier Text |
+| Color Picker | `receive_color()` | `int` | 3 Variablen: `r`, `g`, `b` (je 0–255) |
+
+### Anzeigeelemente (Pico → App)
+
+| Element | Methode | Hinweis |
+|---|---|---|
+| Display | `send()` | Messwert anzeigen |
+| Gauge / Bar | `send()` | Balken / Kreisbogen |
+| Chart | `send()` | Liniendiagramm |
+| Status-LED | `send()` | Ganzzahl 0–3 |
+| Label | `send()` | Text (optional, nur wenn Element-ID gesetzt) |
 
 > **Joystick:** Jede Achse hat eine eigene Element-ID:
 > ```python
@@ -280,9 +265,41 @@ remote.send("display1:42")              # String-Form "key:value"
     └── CCARemote/
         ├── __init__.py
         ├── ble.py
-        ├── wifi.py
-        └── mqtt.py
+        └── wifi.py
 ```
+
+---
+
+## Color Picker – RGB-LED Beispiel
+
+```python
+from CCARemote.ble import CCARemoteBLE
+from machine import Pin, PWM
+
+remote = CCARemoteBLE("MeinPico")
+
+# Pins der gemeinsamen Kathode RGB-LED (PWM-fähige Pins)
+pwm_r = PWM(Pin(13))
+pwm_g = PWM(Pin(14))
+pwm_b = PWM(Pin(15))
+pwm_r.freq(1000)
+pwm_g.freq(1000)
+pwm_b.freq(1000)
+
+remote.begin()
+remote.receive_color("color1")  # Element-ID aus der App
+
+while True:
+    remote.handle()
+
+    if remote.is_connected():
+        r, g, b = remote.get_color("color1")
+        pwm_r.duty_u16(r * 257)  # 0–255 → 0–65535
+        pwm_g.duty_u16(g * 257)
+        pwm_b.duty_u16(b * 257)
+```
+
+> **Hinweis:** Bei einer gemeinsamen Anode RGB-LED die Werte invertieren: `(255 - r) * 257` usw.
 
 ---
 
@@ -296,15 +313,10 @@ remote.send("display1:42")              # String-Form "key:value"
 - Nur der **Pico 2 W** (mit CYW43) unterstützt WiFi – nicht der normale Pico 2
 - Passwörter müssen mindestens 8 Zeichen lang sein
 
-**MQTT: `umqtt.simple` nicht gefunden:**
-```python
-import mip
-mip.install("umqtt.simple")
-```
-
 **ImportError: no module named 'CCARemote':**
 - Bibliothek unter `/lib/CCARemote/` auf dem Pico platzieren (nicht im Root-Verzeichnis)
 
 ---
 
-*Entwickwelt von A. Eckhart | Version 1.0.0 | 2026-05-07 | MIT-Lizenz*
+## Hinweis
+Diese Bibliothek wurde von A. Eckhart entwickelt. Die Nutzung erfolgt auf eigene Verantwortung – es wird keine Gewährleistung für Richtigkeit, Vollständigkeit oder Eignung für einen bestimmten Zweck übernommen.
