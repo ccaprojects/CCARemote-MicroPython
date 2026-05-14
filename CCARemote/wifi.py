@@ -1,6 +1,6 @@
-# CCARemote/wifi.py – WiFi Access Point + HTTP-Server Implementation
+# CCARemote/wifi.py – WiFi Access Point + HTTP/TCP-Server Implementation
 #
-# Handles WiFi Access Point advertising, connection management 
+# Handles WiFi Access Point advertising, connection management
 # and data transfer for the CCARemote App for remote control.
 #
 # Developed by A. Eckhart (HTL Anichstraße) - MIT – see LICENSE
@@ -16,14 +16,17 @@ from . import CCARemote
 
 
 class CCARemoteWiFi(CCARemote):
-    """WiFi Access Point + HTTP-Server für den Raspberry Pi Pico 2 W.
+    """WiFi Access Point + HTTP/TCP-Server für den Raspberry Pi Pico 2 W.
 
     Der Pico 2 W öffnet einen eigenen WLAN-Hotspot.
     Die CCA Remote App verbindet sich mit diesem Hotspot und kommuniziert
-    über ein simples HTTP-Protokoll:
+    über eine persistente TCP-Verbindung (Port 81, KEY:VALUE\\n Protokoll):
 
-        POST /command  – Body: "element_id:wert"  (App → Pico)
-        GET  /display  – JSON mit Display-Werten   (Pico → App)
+        App → Pico:  "element_id:wert\\n"   (Kommando)
+        Pico → App:  "key:wert\\n"           (Display-Push)
+
+    Zusätzlich läuft ein HTTP-Server auf Port 80 für Browser-Zugriff
+    und Device-Discovery (GET /status, GET /).
 
     Beispiel:
         from CCARemote.wifi import CCARemoteWiFi
@@ -40,17 +43,20 @@ class CCARemoteWiFi(CCARemote):
 
     def __init__(self, name, prefix="CCA-"):
         super().__init__(name, prefix)
-        self._ap             = None
-        self._server_socket  = None
-        self._wifi_enabled   = False
-        self._prev_connected = False
+        self._ap                = None
+        self._server_socket     = None
+        self._wifi_enabled      = False
+        self._prev_connected    = False
+        self._tcp_server_socket = None
+        self._tcp_client        = None
+        self._tcp_buf           = ""
 
     # ---------------------------------------------------------------- #
     #  Öffentliche Methoden                                             #
     # ---------------------------------------------------------------- #
 
     def begin(self, wifi_password=""):
-        """Startet den WiFi Access Point und den HTTP-Server auf Port 80.
+        """Startet den WiFi Access Point, HTTP-Server (Port 80) und TCP-Server (Port 81).
 
         Args:
             wifi_password: WLAN-Passwort (leer = offenes Netzwerk, sonst WPA2).
@@ -80,19 +86,27 @@ class CCARemoteWiFi(CCARemote):
         print("WiFi AP:", self._device_name, "(" + enc + ")")
         print("IP-Adresse:", ip)
 
-        # Non-blocking TCP-Server auf Port 80
+        # Non-blocking HTTP-Server auf Port 80 (Browser + Device-Discovery)
         self._server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self._server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self._server_socket.bind(("", 80))
-        self._server_socket.listen(2)
+        self._server_socket.listen(5)
         self._server_socket.setblocking(False)
-
         print("HTTP Server läuft auf Port 80")
+
+        # Persistenter TCP-Server auf Port 81 (App-Kommunikation)
+        self._tcp_server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self._tcp_server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        self._tcp_server_socket.bind(("", 81))
+        self._tcp_server_socket.listen(1)
+        self._tcp_server_socket.setblocking(False)
+        print("TCP Server läuft auf Port 81")
+
         print("CCA Remote bereit!\n")
 
     def handle(self):
         """Muss in der Hauptschleife aufgerufen werden!
-        Nimmt eingehende HTTP-Anfragen an und verarbeitet sie.
+        Verarbeitet HTTP-Anfragen (Port 80) und TCP-Kommandos (Port 81).
         """
         if not self._wifi_enabled or self._server_socket is None:
             return
@@ -104,19 +118,18 @@ class CCARemoteWiFi(CCARemote):
             if self._debug_mode:
                 print("[CCA]", "Verbindung hergestellt" if now_connected else "Verbindung getrennt")
 
-        # Alle ausstehenden Verbindungen in einem Durchlauf abarbeiten
+        # --- HTTP Port 80: alle ausstehenden Verbindungen abarbeiten ---
         while True:
             try:
                 conn, addr = self._server_socket.accept()
             except OSError:
-                break  # Keine weiteren ausstehenden Verbindungen
+                break
 
             try:
-                conn.settimeout(0.5)
+                conn.settimeout(0.1)
                 data = conn.recv(2048)
                 if data:
                     request = data.decode("utf-8", "ignore")
-                    # Body nachlesen wenn er in einem zweiten Paket kommt
                     if "\r\n\r\n" in request:
                         header_part, body_part = request.split("\r\n\r\n", 1)
                         content_length = 0
@@ -135,7 +148,7 @@ class CCARemoteWiFi(CCARemote):
                         request = header_part + "\r\n\r\n" + body_part
                     self._handle_request(conn, request)
             except OSError as e:
-                if e.args[0] != 110:  # 110 = ETIMEDOUT (erwartet bei GET ohne Body)
+                if e.args[0] != 110:  # 110 = ETIMEDOUT
                     print("[CCA] HTTP Fehler:", e)
             except Exception as e:
                 print("[CCA] HTTP Fehler:", e)
@@ -145,14 +158,47 @@ class CCARemoteWiFi(CCARemote):
                 except Exception:
                     pass
 
+        # --- TCP Port 81: neuen Client annehmen ---
+        if self._tcp_client is None and self._tcp_server_socket:
+            try:
+                conn, _ = self._tcp_server_socket.accept()
+                conn.setblocking(False)
+                self._tcp_client = conn
+                self._tcp_buf = ""
+                # Resync: alle aktuellen Display-Werte senden
+                for k, v in self._display_values.items():
+                    try:
+                        conn.sendall("{}:{}\n".format(k, v).encode())
+                    except OSError:
+                        break
+                if self._debug_mode:
+                    print("[CCA] TCP Client verbunden")
+            except OSError:
+                pass
+
+        # --- TCP Port 81: Daten lesen ---
+        if self._tcp_client is not None:
+            try:
+                chunk = self._tcp_client.recv(256)
+                if chunk:
+                    self._tcp_buf += chunk.decode("utf-8", "ignore")
+                    while "\n" in self._tcp_buf:
+                        line, self._tcp_buf = self._tcp_buf.split("\n", 1)
+                        line = line.strip()
+                        if line == "disconnect:1":
+                            self._tcp_disconnect()
+                            break
+                        elif line:
+                            self._process_command(line)
+                else:
+                    self._tcp_disconnect()  # sauberes TCP-Close
+            except OSError as e:
+                if e.args[0] not in (11, 35):  # EAGAIN/EWOULDBLOCK = kein Fehler
+                    self._tcp_disconnect()
+
     def is_connected(self):
-        """Gibt True zurück wenn mindestens ein Gerät mit dem AP verbunden ist."""
-        if not self._wifi_enabled or self._ap is None:
-            return False
-        try:
-            return len(self._ap.status("stations")) > 0
-        except Exception:
-            return self._ap.active()
+        """Gibt True zurück wenn die App per TCP verbunden ist."""
+        return self._tcp_client is not None
 
     # ---------------------------------------------------------------- #
     #  HTTP-Handler                                                     #
@@ -177,7 +223,6 @@ class CCARemoteWiFi(CCARemote):
         elif method == "GET" and path == "/status":
             self._send_status(conn)
         elif path == "/command":
-            # Command kann via POST (Body) oder GET (Query-String) kommen
             body = ""
             if method == "POST":
                 if "\r\n\r\n" in request:
@@ -185,13 +230,8 @@ class CCARemoteWiFi(CCARemote):
                 elif "\n\n" in request:
                     body = request.split("\n\n", 1)[1].strip()
             elif method == "GET" and query:
-                # Query-String "key=value&key2=value2" → "key:value,key2:value2"
                 body = ",".join(p.replace("=", ":", 1) for p in query.split("&") if p)
-            if body == "disconnect:1":
-                if self._debug_mode:
-                    print("[CCA] Verbindung getrennt (App)")
-                self._prev_connected = False
-            elif body:
+            if body and body != "disconnect:1":
                 self._process_command(body)
             self._send_json(conn, '{"status":"ok"}')
         elif method == "GET" and path == "/display":
@@ -213,11 +253,13 @@ class CCARemoteWiFi(CCARemote):
             "<p>CCA Remote WiFi läuft</p>"
             "<p>IP: {ip}</p>"
             "<p>Verbundene Geräte: {c}</p>"
+            "<p>TCP-Client: {tc}</p>"
             "<hr>"
-            "<p><strong>POST /command</strong> &ndash; Body: element_id:wert</p>"
-            "<p><strong>GET /display</strong> &ndash; JSON mit Display-Werten</p>"
+            "<p><strong>TCP Port 81</strong> &ndash; KEY:VALUE\\n (App-Verbindung)</p>"
+            "<p><strong>GET /status</strong> &ndash; Device-Info</p>"
             "</body></html>"
-        ).format(n=self._device_name, ip=ip, c=clients)
+        ).format(n=self._device_name, ip=ip, c=clients,
+                 tc="verbunden" if self._tcp_client else "getrennt")
         self._send_response(conn, 200, "text/html", html)
 
     def _send_status(self, conn):
@@ -249,6 +291,20 @@ class CCARemoteWiFi(CCARemote):
     #  Interne Methoden                                                 #
     # ---------------------------------------------------------------- #
 
+    def _tcp_disconnect(self):
+        if self._tcp_client:
+            try:
+                self._tcp_client.close()
+            except Exception:
+                pass
+            self._tcp_client = None
+        self._tcp_buf = ""
+
     def _send_internal(self, key, value):
-        """Speichert den Wert für GET /display (wird bei nächster Anfrage geliefert)."""
+        """Pusht Wert per TCP; speichert ihn immer für HTTP /display."""
         self._display_values[key] = value
+        if self._tcp_client:
+            try:
+                self._tcp_client.sendall("{}:{}\n".format(key, value).encode())
+            except OSError:
+                self._tcp_disconnect()
