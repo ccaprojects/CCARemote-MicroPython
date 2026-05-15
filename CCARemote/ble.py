@@ -114,6 +114,7 @@ class CCARemoteBLE(CCARemote):
         """Muss in der Hauptschleife aufgerufen werden!
         Verarbeitet empfangene BLE-Befehle.
         """
+        self._check_watchdogs()
         # Advertising-Neustart außerhalb des IRQ-Callbacks durchführen
         if self._restart_advertise:
             self._restart_advertise = False

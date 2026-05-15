@@ -179,6 +179,7 @@ while True:
 | `remote.get_color("id")` | RGB-Werte als Tupel `(r, g, b)` abrufen (je 0–255) |
 | `remote.send("id", wert)` | Wert an Display-Element der App senden |
 | `remote.on_command("id", cb)` | Callback für Befehl registrieren |
+| `remote.watchdog("id", ms)` | Variable automatisch auf 0 setzen wenn sie länger als `ms` Millisekunden nicht aktualisiert wurde |
 | `remote.debug()` | Debug-Ausgaben im REPL aktivieren |
 
 ### Debug-Modus
@@ -218,6 +219,24 @@ remote.debug(CCA_DEBUG_OFF)   # kein Output
 > remote.receive("axisX", int)  # Joystick X (−255 – +255)
 > remote.receive("axisY", int)  # Joystick Y (−255 – +255)
 > ```
+
+### watchdog() – Automatischer Nullwert bei Verbindungsverlust
+
+Setzt eine Variable automatisch auf `0` zurück wenn sie länger als das angegebene Timeout nicht aktualisiert wurde. Typischer Anwendungsfall: Joystick-Achsen bei RC-Fahrzeugen oder Robotern, damit das Gerät bei Verbindungsverlust zuverlässig stoppt.
+
+```python
+remote.receive("axisX", int)
+remote.receive("axisY", int)
+remote.watchdog("axisX", 500)  # axisX → 0 wenn 500 ms kein Update
+remote.watchdog("axisY", 500)  # axisY → 0 wenn 500 ms kein Update
+```
+
+| Parameter | Typ | Beschreibung |
+|---|---|---|
+| `cmd` | `str` | Element-ID — muss mit `receive()` registriert sein |
+| `timeout_ms` | `int` | Timeout in Millisekunden |
+
+> **Hinweis:** `watchdog()` muss nach `receive()` aufgerufen werden. Der Watchdog wird in `handle()` geprüft — `handle()` muss also regelmäßig im Hauptloop aufgerufen werden.
 
 ### Callbacks
 

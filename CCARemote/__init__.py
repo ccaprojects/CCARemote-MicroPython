@@ -35,6 +35,9 @@ class CCARemote:
         self._values           = {}
         # key → Anzeige-Wert (für send / /display)
         self._display_values   = {}
+        # Watchdog: cmd → timeout_ms / letzter Update-Zeitstempel
+        self._watchdogs        = {}
+        self._watchdog_last    = {}
 
     # ---------------------------------------------------------------- #
     #  Öffentliche API                                                  #
@@ -145,6 +148,18 @@ class CCARemote:
         """
         return self._values.get(cmd, default)
 
+    def watchdog(self, cmd, timeout_ms):
+        """Setzt cmd automatisch auf 0 wenn es länger als timeout_ms ms nicht aktualisiert wurde.
+
+        Typischer Anwendungsfall: Joystick-Achsen bei RC-Fahrzeugen.
+
+        Beispiel:
+            remote.watchdog("axisX", 500)
+            remote.watchdog("axisY", 500)
+        """
+        self._watchdogs[cmd]     = timeout_ms
+        self._watchdog_last[cmd] = time.ticks_ms()
+
     def get(self, cmd, default=None):
         """Gibt den zuletzt empfangenen Wert für eine Element-ID zurück.
 
@@ -209,6 +224,16 @@ class CCARemote:
         """Intern – wird von Unterklassen überschrieben."""
         raise NotImplementedError
 
+    def _check_watchdogs(self):
+        """Setzt Variablen auf 0 wenn sie länger als ihr Timeout nicht aktualisiert wurden."""
+        if not self._watchdogs:
+            return
+        now = time.ticks_ms()
+        for cmd, timeout_ms in self._watchdogs.items():
+            if time.ticks_diff(now, self._watchdog_last.get(cmd, now)) >= timeout_ms:
+                self._watchdog_last[cmd] = now
+                self._process_command("{}:0".format(cmd))
+
     def _resync_display(self):
         """Sendet alle gespeicherten Display-Werte erneut an die App."""
         for key, value in self._display_values.items():
@@ -236,11 +261,12 @@ class CCARemote:
                 key   = part[:colon]
                 value = part[colon + 1:]
                 if key in self._callbacks:
-                    # Callback aufrufen – mit Wert wenn möglich, sonst ohne
                     try:
                         self._callbacks[key](value)
                     except TypeError:
                         self._callbacks[key]()
+                    if key in self._watchdog_last:
+                        self._watchdog_last[key] = time.ticks_ms()
                 else:
                     print("Unbekannter Befehl:", key)
             else:
@@ -251,5 +277,7 @@ class CCARemote:
                         self._callbacks[part]()
                     except TypeError:
                         self._callbacks[part]("")
+                    if part in self._watchdog_last:
+                        self._watchdog_last[part] = time.ticks_ms()
                 else:
                     print("Unbekannter Befehl:", part)

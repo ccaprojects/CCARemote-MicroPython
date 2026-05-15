@@ -96,6 +96,7 @@ class CCARemoteWiFi(CCARemote):
         """Muss in der Hauptschleife aufgerufen werden!
         Nimmt eingehende TCP-Verbindungen an und verarbeitet Kommandos.
         """
+        self._check_watchdogs()
         if not self._wifi_enabled or self._tcp_server_socket is None:
             return
 
