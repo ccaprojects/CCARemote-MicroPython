@@ -20,7 +20,7 @@ class CCARemoteWiFi(CCARemote):
 
     Der Pico 2 W öffnet einen eigenen WLAN-Hotspot.
     Die CCA Remote App verbindet sich mit diesem Hotspot und kommuniziert
-    über eine persistente TCP-Verbindung auf Port 81:
+    über eine persistente TCP-Verbindung auf Port 4210:
 
         App → Pico:  "element_id:wert\\n"   (Kommando)
         Pico → App:  "key:wert\\n"           (Display-Push)
