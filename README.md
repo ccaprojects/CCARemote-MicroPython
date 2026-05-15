@@ -5,7 +5,7 @@ Dieses Projekt wurde von der HTL Anichstraße (Abteilung Wirtschaftsingenieure �
 
 Unterstützte Protokolle:
 - **Bluetooth Low Energy (BLE)**
-- **WiFi (WLAN-Hotspot + HTTP)**
+- **WiFi (WLAN-Hotspot + TCP)**
 
 Unterstützte Hardware:
 - **ESP32** – natives BLE, WiFi
@@ -134,14 +134,22 @@ while True:
 
 ### WiFi-Verbindung (Hotspot)
 
+**`begin(wifi_password, port)`**
+
+| Parameter | Standard | Beschreibung |
+|---|---|---|
+| `wifi_password` | `""` | WLAN-Passwort (leer = offenes Netzwerk, sonst WPA2, min. 8 Zeichen) |
+| `port` | `4210` | TCP-Port für die App-Verbindung |
+
 ```python
 from CCARemote.wifi import CCARemoteWiFi
 from machine import Pin
 import time
 
 remote = CCARemoteWiFi("MeinPico")
-remote.begin()                        # Kein Passwort – offenes Netzwerk
-# remote.begin("geheim1234")         # Mit WPA2-Passwort (min. 8 Zeichen)
+remote.begin()                           # offenes Netzwerk, Port 4210
+# remote.begin("geheim1234")            # WPA2, Port 4210
+# remote.begin("geheim1234", port=5000) # WPA2, abweichender Port
 
 remote.receive("switch1", bool)
 

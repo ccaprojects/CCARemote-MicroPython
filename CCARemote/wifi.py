@@ -51,11 +51,12 @@ class CCARemoteWiFi(CCARemote):
     #  Öffentliche Methoden                                             #
     # ---------------------------------------------------------------- #
 
-    def begin(self, wifi_password=""):
-        """Startet den WiFi Access Point und den TCP-Server auf Port 81.
+    def begin(self, wifi_password="", port=4210):
+        """Startet den WiFi Access Point und den TCP-Server.
 
         Args:
             wifi_password: WLAN-Passwort (leer = offenes Netzwerk, sonst WPA2).
+            port:          TCP-Port für die App-Verbindung (Standard: 4210).
         """
         print("\nCCA Remote startet (WiFi)...")
         print("Gerätename:", self._device_name)
@@ -84,10 +85,10 @@ class CCARemoteWiFi(CCARemote):
 
         self._tcp_server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self._tcp_server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        self._tcp_server_socket.bind(("", 81))
+        self._tcp_server_socket.bind(("", port))
         self._tcp_server_socket.listen(1)
         self._tcp_server_socket.setblocking(False)
-        print("TCP Server läuft auf Port 81")
+        print("TCP Server läuft auf Port", port)
 
         print("CCA Remote bereit!\n")
 
