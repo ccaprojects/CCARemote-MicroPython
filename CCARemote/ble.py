@@ -47,10 +47,15 @@ class CCARemoteBLE(CCARemote):
     Der Pico 2 W startet als BLE-Peripheral (GATT-Server) und wartet
     auf eine Verbindung der CCA Remote App.
 
-    Beispiel:
-        from CCARemote.ble import CCARemoteBLE
+    Beispiel (empfohlene Verwendung mit create_remote):
+        from CCARemote import CCA_BLE, CCA_DEBUG_ALL, create_remote
 
-        remote = CCARemoteBLE("MeinPico")
+        DEVICE_NAME = "MeinPico"
+        CONNECTION  = CCA_BLE
+        PASSWORD    = ""
+        DEBUG_LEVEL = CCA_DEBUG_ALL
+
+        remote = create_remote(DEVICE_NAME, CONNECTION, PASSWORD, DEBUG_LEVEL)
         remote.begin()
         remote.receive("button1", bool)
 
@@ -60,14 +65,14 @@ class CCARemoteBLE(CCARemote):
                 led.value(1 if remote.get("button1", False) else 0)
     """
 
-    def __init__(self, name, prefix="CCA-"):
-        super().__init__(name, prefix)
+    def __init__(self, name, prefix="CCA-", password="", debug_level=0):
+        super().__init__(name, prefix, debug_level)
         self._ble               = bluetooth.BLE()
         self._conn_handle       = None
         self._control_handle    = None
         self._display_handle    = None
         self._connected         = False
-        self._password          = ""
+        self._password          = password
         self._authenticated     = False
         self._restart_advertise = False  # wird in handle() ausgewertet
         self._pending_auth_fail = False  # wird in handle() ausgewertet
@@ -77,15 +82,11 @@ class CCARemoteBLE(CCARemote):
     #  Öffentliche Methoden                                             #
     # ---------------------------------------------------------------- #
 
-    def begin(self, ble_password=""):
+    def begin(self):
         """Startet den BLE GATT-Server und beginnt mit dem Advertising.
 
-        Args:
-            ble_password: Passwort für optionale AUTH-Authentifizierung.
-                          Leer (Standard) = keine Authentifizierung.
-                          Die App muss dann als erstes "AUTH:<passwort>" senden.
+        Passwort und Debug-Level werden über den Konstruktor oder create_remote() gesetzt.
         """
-        self._password = ble_password
 
         print("\nCCA Remote startet (BLE)...")
         print("Gerätename:", self._device_name)

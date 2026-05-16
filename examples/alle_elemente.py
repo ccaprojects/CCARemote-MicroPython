@@ -9,6 +9,8 @@
 
 from machine import Pin, PWM
 import time
+import random
+import neopixel
 
 from CCARemote import CCA_BLE, CCA_WIFI, CCA_DEBUG_OFF, CCA_DEBUG_ALL, create_remote
 

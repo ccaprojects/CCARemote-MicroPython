@@ -1,14 +1,20 @@
 # CCARemote/__init__.py – Abstract base class
 #
 # Usage:
-#   from CCARemote.ble  import CCARemoteBLE   # for BLE-Connection
-#   from CCARemote.wifi import CCARemoteWiFi  # for WiFi-Connection
-#   from CCARemote.mqtt import CCARemoteMQTT  # for MQTT-Connection
+#   from CCARemote import create_remote, CCA_BLE, CCA_WIFI
 #
 # Developed by A. Eckhart (HTL Anichstraße) - MIT – see LICENSE
 
+import time
+
 # Version der Bibliothek
-__version__ = "1.1.0"
+__version__ = "1.2.0"
+
+# ------------------------------------------------------------------ #
+#  Verbindungstyp-Konstanten                                          #
+# ------------------------------------------------------------------ #
+CCA_BLE  = 1
+CCA_WIFI = 2
 
 # ------------------------------------------------------------------ #
 #  Debug-Modus Konstanten (kombinierbar mit |)                        #
@@ -21,12 +27,12 @@ CCA_DEBUG_ALL = 3   # empfangene und gesendete Werte ausgeben
 
 class CCARemote:
     """Abstrakte Basisklasse – nicht direkt verwenden!
-    Verwende: CCARemoteBLE, CCARemoteWiFi, CCARemoteMQTT
+    Verwende: create_remote(), CCARemoteBLE, CCARemoteWiFi, CCARemoteMQTT
     """
 
-    def __init__(self, name, prefix="CCA-"):
+    def __init__(self, name, prefix="CCA-", debug_level=CCA_DEBUG_OFF):
         self._device_name      = prefix + name
-        self._debug_mode       = CCA_DEBUG_OFF
+        self._debug_mode       = debug_level
         self._command_received = False
         self._last_command     = ""
         # cmd → callback (ohne oder mit Wert-Parameter)
@@ -281,3 +287,40 @@ class CCARemote:
                         self._watchdog_last[part] = time.ticks_ms()
                 else:
                     print("Unbekannter Befehl:", part)
+
+
+# ------------------------------------------------------------------ #
+#  Factory-Funktion – vereinfachte Konfiguration                      #
+# ------------------------------------------------------------------ #
+
+def create_remote(name, connection=CCA_BLE, password="", debug_level=CCA_DEBUG_OFF,
+                  prefix="CCA-", port=4210):
+    """Erstellt das passende remote-Objekt anhand der Konfigurationsparameter.
+
+    Empfohlene Verwendung:
+        from CCARemote import CCA_BLE, CCA_WIFI, CCA_DEBUG_ALL, create_remote
+
+        DEVICE_NAME = "MeinName"
+        CONNECTION  = CCA_BLE
+        PASSWORD    = ""
+        DEBUG_LEVEL = CCA_DEBUG_ALL
+
+        remote = create_remote(DEVICE_NAME, CONNECTION, PASSWORD, DEBUG_LEVEL)
+        remote.begin()
+
+    Args:
+        name:        Gerätename (wird als "CCA-<name>" angezeigt)
+        connection:  CCA_BLE (Standard) oder CCA_WIFI
+        password:    Passwort (WiFi: min. 8 Zeichen / leer = ohne)
+        debug_level: CCA_DEBUG_OFF / CCA_DEBUG_IN / CCA_DEBUG_OUT / CCA_DEBUG_ALL
+        prefix:      Geräte-Präfix (Standard: "CCA-")
+        port:        TCP-Port (Standard: 4210, nur WiFi)
+    """
+    if connection == CCA_WIFI:
+        from CCARemote.wifi import CCARemoteWiFi
+        return CCARemoteWiFi(name, prefix=prefix, password=password,
+                             port=port, debug_level=debug_level)
+    else:
+        from CCARemote.ble import CCARemoteBLE
+        return CCARemoteBLE(name, prefix=prefix, password=password,
+                            debug_level=debug_level)

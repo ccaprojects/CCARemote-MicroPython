@@ -25,11 +25,16 @@ class CCARemoteWiFi(CCARemote):
         App → Pico:  "element_id:wert\\n"   (Kommando)
         Pico → App:  "key:wert\\n"           (Display-Push)
 
-    Beispiel:
-        from CCARemote.wifi import CCARemoteWiFi
+    Beispiel (empfohlene Verwendung mit create_remote):
+        from CCARemote import CCA_WIFI, CCA_DEBUG_ALL, create_remote
 
-        remote = CCARemoteWiFi("MeinPico")
-        remote.begin("geheim1234")
+        DEVICE_NAME = "MeinPico"
+        CONNECTION  = CCA_WIFI
+        PASSWORD    = ""
+        DEBUG_LEVEL = CCA_DEBUG_ALL
+
+        remote = create_remote(DEVICE_NAME, CONNECTION, PASSWORD, DEBUG_LEVEL)
+        remote.begin()
         remote.receive("switch1", bool)
 
         while True:
@@ -38,8 +43,10 @@ class CCARemoteWiFi(CCARemote):
                 led.value(1 if remote.get("switch1", False) else 0)
     """
 
-    def __init__(self, name, prefix="CCA-"):
-        super().__init__(name, prefix)
+    def __init__(self, name, prefix="CCA-", password="", port=4210, debug_level=0):
+        super().__init__(name, prefix, debug_level)
+        self._password          = password
+        self._port              = port
         self._ap                = None
         self._wifi_enabled      = False
         self._prev_connected    = False
@@ -51,12 +58,10 @@ class CCARemoteWiFi(CCARemote):
     #  Öffentliche Methoden                                             #
     # ---------------------------------------------------------------- #
 
-    def begin(self, wifi_password="", port=4210):
+    def begin(self):
         """Startet den WiFi Access Point und den TCP-Server.
 
-        Args:
-            wifi_password: WLAN-Passwort (leer = offenes Netzwerk, sonst WPA2).
-            port:          TCP-Port für die App-Verbindung (Standard: 4210).
+        Passwort, Port und Debug-Level werden über den Konstruktor oder create_remote() gesetzt.
         """
         print("\nCCA Remote startet (WiFi)...")
         print("Gerätename:", self._device_name)
@@ -66,8 +71,8 @@ class CCARemoteWiFi(CCARemote):
         time.sleep(0.5)
 
         cfg = dict(ssid=self._device_name, channel=6)
-        if wifi_password:
-            cfg["password"] = wifi_password
+        if self._password:
+            cfg["password"] = self._password
             cfg["security"] = network.WLAN.SEC_WPA_WPA2
         else:
             cfg["security"] = 0
@@ -79,16 +84,16 @@ class CCARemoteWiFi(CCARemote):
 
         self._wifi_enabled = True
         ip = self._ap.ifconfig()[0]
-        enc = "WPA2" if wifi_password else "offen"
+        enc = "WPA2" if self._password else "offen"
         print("WiFi AP:", self._device_name, "(" + enc + ")")
         print("IP-Adresse:", ip)
 
         self._tcp_server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self._tcp_server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        self._tcp_server_socket.bind(("", port))
+        self._tcp_server_socket.bind(("", self._port))
         self._tcp_server_socket.listen(1)
         self._tcp_server_socket.setblocking(False)
-        print("TCP Server läuft auf Port", port)
+        print("TCP Server läuft auf Port", self._port)
 
         print("CCA Remote bereit!\n")
 
