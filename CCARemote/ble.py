@@ -141,8 +141,8 @@ class CCARemoteBLE(CCARemote):
             self._command_received = False
 
     def is_connected(self):
-        """Gibt True zurück wenn ein Gerät verbunden ist."""
-        return self._connected
+        """Gibt True zurück wenn ein Gerät verbunden und authentifiziert ist."""
+        return self._connected and self._authenticated
 
     # ---------------------------------------------------------------- #
     #  Interne Methoden                                                 #
@@ -210,6 +210,9 @@ class CCARemoteBLE(CCARemote):
                             except Exception:
                                 pass
                             self._pending_auth_fail = True  # Disconnect nach Delay in handle()
+                    return
+
+                if value == "AUTH" or value.startswith("AUTH:"):
                     return
 
                 self._last_command     = value
