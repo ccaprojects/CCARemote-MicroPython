@@ -197,7 +197,7 @@ class CCARemoteBLE(CCARemote):
                         self._pending_resync = True
                         print("BLE Authentifizierung erfolgreich!")
                         try:
-                            self._ble.gatts_write(self._display_handle, b"AUTH:OK")
+                            self._ble.gatts_write(self._display_handle, b"AUTH:OK\n")
                             self._ble.gatts_notify(self._conn_handle, self._display_handle)
                         except Exception:
                             pass
@@ -205,7 +205,7 @@ class CCARemoteBLE(CCARemote):
                         print("BLE Authentifizierung fehlgeschlagen! Verbindung wird getrennt.")
                         if self._conn_handle is not None:
                             try:
-                                self._ble.gatts_write(self._display_handle, b"AUTH:FAIL")
+                                self._ble.gatts_write(self._display_handle, b"AUTH:FAIL\n")
                                 self._ble.gatts_notify(self._conn_handle, self._display_handle)
                             except Exception:
                                 pass
@@ -218,7 +218,7 @@ class CCARemoteBLE(CCARemote):
     def _send_internal(self, key, value):
         """Sendet einen Wert an die App via BLE NOTIFY."""
         if self._connected and self._authenticated and self._display_handle is not None:
-            msg = (key + ":" + value).encode("utf-8")
+            msg = (key + ":" + value + "\n").encode("utf-8")
             try:
                 self._ble.gatts_write(self._display_handle, msg)
                 if self._conn_handle is not None:
