@@ -1,5 +1,5 @@
 # =============================================================
-#  CCA Remote Beispiel: Alle Elemente (BLE)
+#  CCA Remote Beispiel: Alle Elemente
 #  Alle unterstützten Steuerelemente der App.
 #  Empfangene Werte werden im REPL ausgegeben.
 # =============================================================
@@ -10,13 +10,20 @@
 from machine import Pin, PWM
 import time
 
-# Für BLE-Verbindung:
-from CCARemote.ble import CCARemoteBLE
-remote = CCARemoteBLE("MeinName")   # Namen hier anpassen!
+from CCARemote import CCA_BLE, CCA_WIFI, CCA_DEBUG_OFF, CCA_DEBUG_ALL, create_remote
 
-# Für WiFi-Verbindung stattdessen:
-# from CCARemote.wifi import CCARemoteWiFi
-# remote = CCARemoteWiFi("MeinName")
+# ---- Konfiguration – hier anpassen! -----------------------
+DEVICE_NAME = "MeinName"    # Gerätename (wird als "CCA-MeinName" angezeigt)
+CONNECTION  = CCA_BLE       # CCA_BLE  oder  CCA_WIFI
+PASSWORD    = ""            # Passwort (WiFi: min. 8 Zeichen / leer = ohne)
+DEBUG_LEVEL = CCA_DEBUG_ALL # CCA_DEBUG_OFF / _IN / _OUT / _ALL
+
+# Optional – nur setzen wenn Standardwert nicht passt:
+# DEVICE_PREFIX = "XYZ-"   # Standard: "CCA-"
+# TCP_PORT      = 4211      # Standard: 4210  (nur WiFi)
+# -----------------------------------------------------------
+
+remote = create_remote(DEVICE_NAME, CONNECTION, PASSWORD, DEBUG_LEVEL)
 
 LED_BUTTON = Pin("LED",  Pin.OUT)   # Onboard-LED  → Button-Element
 LED_SLIDER = PWM(Pin(15))           # PWM-LED (GP15) → Slider-Element
@@ -28,8 +35,7 @@ LED_INPUT  = Pin(17, Pin.OUT)       # LED (GP17) → Input-Element
 # ---------------------------------------------------------------- #
 #  Setup                                                            #
 # ---------------------------------------------------------------- #
-remote.debug()          # Debug-Modus aktivieren
-remote.begin()          # BLE starten
+remote.begin()
 
 # Element-IDs aus der App mit Typen verknüpfen
 # Werte abrufen mit: remote.get("Element-ID")
@@ -70,7 +76,7 @@ while True:
         # Slider-Wert an Display-Element der App senden
         remote.send("display1", slider1_val)
 
-        # Hardware-Typ (Pico 2W) an Label-Element der App senden
+        # Hardware-Typ an Label-Element der App senden
         remote.send("label1", "Pico 2W")
 
     else:

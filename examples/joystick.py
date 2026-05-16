@@ -1,5 +1,5 @@
 # =============================================================
-#  CCA Remote Beispiel: Joystick Element mit Watchdog (WiFi)
+#  CCA Remote Beispiel: Joystick Element mit Watchdog
 #  Ein Joystick in der App steuert zwei PWM-Ausgänge (z.B.
 #  Motoren eines RC-Fahrzeugs). Der Watchdog stoppt die Motoren
 #  automatisch wenn die Verbindung unterbrochen wird.
@@ -11,13 +11,20 @@
 from machine import Pin, PWM
 import time
 
-# Für WiFi-Verbindung:
-from CCARemote.wifi import CCARemoteWiFi
-remote = CCARemoteWiFi("MeinName")  # Namen hier anpassen!
+from CCARemote import CCA_BLE, CCA_WIFI, CCA_DEBUG_OFF, CCA_DEBUG_ALL, create_remote
 
-# Für BLE-Verbindung stattdessen:
-# from CCARemote.ble import CCARemoteBLE
-# remote = CCARemoteBLE("MeinName")
+# ---- Konfiguration – hier anpassen! -----------------------
+DEVICE_NAME = "MeinName"    # Gerätename (wird als "CCA-MeinName" angezeigt)
+CONNECTION  = CCA_BLE       # CCA_BLE  oder  CCA_WIFI
+PASSWORD    = ""            # Passwort (WiFi: min. 8 Zeichen / leer = ohne)
+DEBUG_LEVEL = CCA_DEBUG_ALL # CCA_DEBUG_OFF / _IN / _OUT / _ALL
+
+# Optional – nur setzen wenn Standardwert nicht passt:
+# DEVICE_PREFIX = "XYZ-"   # Standard: "CCA-"
+# TCP_PORT      = 4211      # Standard: 4210  (nur WiFi)
+# -----------------------------------------------------------
+
+remote = create_remote(DEVICE_NAME, CONNECTION, PASSWORD, DEBUG_LEVEL)
 
 MOTOR_A = PWM(Pin(18))  # PWM-Pin Motor A (z.B. Vorwärts / Rückwärts)
 MOTOR_B = PWM(Pin(19))  # PWM-Pin Motor B (z.B. Links / Rechts)
@@ -28,9 +35,7 @@ MOTOR_B.freq(1000)
 # ---------------------------------------------------------------- #
 #  Setup                                                            #
 # ---------------------------------------------------------------- #
-remote.debug()           # Debug-Modus: CCA_DEBUG_IN, CCA_DEBUG_OUT oder CCA_DEBUG_ALL
-remote.begin()           # WiFi-Hotspot starten (kein Passwort = offenes Netzwerk)
-# remote.begin("geheim1234")  # Mit WPA2-Passwort (min. 8 Zeichen)
+remote.begin()
 
 # Die Element-IDs aus der App werden mit Typen verknüpft.
 # Werte abrufen mit: remote.get("Element-ID")

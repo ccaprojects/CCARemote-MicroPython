@@ -1,5 +1,5 @@
 # =============================================================
-#  CCA Remote Beispiel: Display Element (BLE)
+#  CCA Remote Beispiel: Display Element
 #  Aktualisiert jede Sekunde einen Zähler und gibt den Wert
 #  in einem Display-Element der App aus.
 # =============================================================
@@ -9,13 +9,20 @@
 
 import time
 
-# Für BLE-Verbindung:
-from CCARemote.ble import CCARemoteBLE
-remote = CCARemoteBLE("MeinName")   # Namen hier anpassen!
+from CCARemote import CCA_BLE, CCA_WIFI, CCA_DEBUG_OFF, CCA_DEBUG_ALL, create_remote
 
-# Für WiFi-Verbindung stattdessen:
-# from CCARemote.wifi import CCARemoteWiFi
-# remote = CCARemoteWiFi("MeinName")
+# ---- Konfiguration – hier anpassen! -----------------------
+DEVICE_NAME = "MeinName"    # Gerätename (wird als "CCA-MeinName" angezeigt)
+CONNECTION  = CCA_BLE       # CCA_BLE  oder  CCA_WIFI
+PASSWORD    = ""            # Passwort (WiFi: min. 8 Zeichen / leer = ohne)
+DEBUG_LEVEL = CCA_DEBUG_ALL # CCA_DEBUG_OFF / _IN / _OUT / _ALL
+
+# Optional – nur setzen wenn Standardwert nicht passt:
+# DEVICE_PREFIX = "XYZ-"   # Standard: "CCA-"
+# TCP_PORT      = 4211      # Standard: 4210  (nur WiFi)
+# -----------------------------------------------------------
+
+remote = create_remote(DEVICE_NAME, CONNECTION, PASSWORD, DEBUG_LEVEL)
 
 
 # ---------------------------------------------------------------- #
@@ -32,7 +39,7 @@ UPDATE_MS   = 1000  # Aktualisierungsintervall in Millisekunden
 #  Hauptschleife                                                    #
 # ---------------------------------------------------------------- #
 while True:
-    remote.handle()
+    remote.handle()     # Empfangene Befehle verarbeiten (erforderlich!)
 
     # Wert jede Sekunde senden (nur wenn App verbunden)
     if remote.is_connected():

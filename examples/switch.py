@@ -1,6 +1,6 @@
 # =============================================================
-#  CCA Remote Beispiel: Button Element (BLE)
-#  Ein Taster in der App schaltet die onboard-LED ein oder aus.
+#  CCA Remote Beispiel: Switch Element
+#  Ein Schalter in der App schaltet die onboard-LED ein oder aus.
 # =============================================================
 #  Erfordert die kostenlose CCA Remote App (Android / iOS)
 #  Raspberry Pi Pico 2 W  |  MicroPython ≥ 1.23
@@ -9,13 +9,20 @@
 from machine import Pin
 import time
 
-# Für BLE-Verbindung:
-from CCARemote.ble import CCARemoteBLE
-remote = CCARemoteBLE("MeinName")   # Namen hier anpassen!
+from CCARemote import CCA_BLE, CCA_WIFI, CCA_DEBUG_OFF, CCA_DEBUG_ALL, create_remote
 
-# Für WiFi-Verbindung stattdessen:
-# from CCARemote.wifi import CCARemoteWiFi
-# remote = CCARemoteWiFi("MeinName")
+# ---- Konfiguration – hier anpassen! -----------------------
+DEVICE_NAME = "MeinName"    # Gerätename (wird als "CCA-MeinName" angezeigt)
+CONNECTION  = CCA_BLE       # CCA_BLE  oder  CCA_WIFI
+PASSWORD    = ""            # Passwort (WiFi: min. 8 Zeichen / leer = ohne)
+DEBUG_LEVEL = CCA_DEBUG_ALL # CCA_DEBUG_OFF / _IN / _OUT / _ALL
+
+# Optional – nur setzen wenn Standardwert nicht passt:
+# DEVICE_PREFIX = "XYZ-"   # Standard: "CCA-"
+# TCP_PORT      = 4211      # Standard: 4210  (nur WiFi)
+# -----------------------------------------------------------
+
+remote = create_remote(DEVICE_NAME, CONNECTION, PASSWORD, DEBUG_LEVEL)
 
 LED_PIN = Pin("LED", Pin.OUT)       # Onboard-LED des Pico 2 W
 # Externe LED: LED_PIN = Pin(15, Pin.OUT)
@@ -24,12 +31,9 @@ LED_PIN = Pin("LED", Pin.OUT)       # Onboard-LED des Pico 2 W
 # ---------------------------------------------------------------- #
 #  Setup                                                            #
 # ---------------------------------------------------------------- #
-remote.debug()          # Debug-Modus: CCA_DEBUG_IN, CCA_DEBUG_OUT oder CCA_DEBUG_ALL
-remote.begin()          # BLE starten
+remote.begin()
 
-# Die Element-IDs aus der App werden mit Typen verknüpft.
-# Werte abrufen mit: remote.get("Element-ID")
-remote.receive("button1", bool)
+remote.receive("switch1", bool)
 
 
 # ---------------------------------------------------------------- #
@@ -39,7 +43,7 @@ while True:
     remote.handle()     # Empfangene Befehle verarbeiten (erforderlich!)
 
     if remote.is_connected():
-        LED_PIN.value(1 if remote.get("button1", False) else 0)
+        LED_PIN.value(1 if remote.get("switch1", False) else 0)
     else:
         LED_PIN.value(0)    # LED ausschalten wenn keine Verbindung
 
