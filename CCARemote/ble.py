@@ -189,6 +189,13 @@ class CCARemoteBLE(CCARemote):
                 value = raw.decode("utf-8", "ignore").strip()
                 if not value:
                     return
+                # '>' Startmarker entfernen (BLE sendet '>cmd', Pico braucht das nicht,
+                # aber für Kompatibilität mit der App wird es still entfernt)
+                gte = value.find('>')
+                if gte >= 0:
+                    value = value[gte + 1:]
+                if not value:
+                    return
 
                 # Authentifizierung prüfen wenn Passwort gesetzt
                 if self._password and not self._authenticated:
@@ -213,7 +220,12 @@ class CCARemoteBLE(CCARemote):
                     return
 
                 if value == "AUTH" or value.startswith("AUTH:"):
+                    # AUTH-Befehl der App = Subscription aktiv → Display-Werte jetzt sicher senden
+                    self._pending_resync = True
                     return
+
+                if value.startswith("ping:"):
+                    return  # Heartbeat der App
 
                 self._last_command     = value
                 self._command_received = True
