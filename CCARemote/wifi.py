@@ -64,9 +64,10 @@ class CCARemoteWiFi(CCARemote):
         Passwort, Port und Debug-Level werden über den Konstruktor oder create_remote() gesetzt.
         """
         print("\n" + self._ts() + "CCA Remote startet (WiFi)...")
-        print(self._ts() + "Gerätename: " + self._device_name)
         if self._debug_mode == CCA_DEBUG_ALL:
-            print(self._ts() + "[CCA] Lib: {}  |  Protokoll: {}".format(__version__, CCA_PROTOCOL_VERSION))
+            print(self._ts() + "[CCA] Library: {}  |  Protokoll: {}".format(__version__, CCA_PROTOCOL_VERSION))
+
+        print(self._ts() + "Gerätename: " + self._device_name)
 
         self._ap = network.WLAN(network.WLAN.IF_AP)
         self._ap.active(False)
