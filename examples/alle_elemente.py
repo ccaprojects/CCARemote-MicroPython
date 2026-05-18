@@ -35,6 +35,14 @@ LED_SLIDER.freq(1000)
 LED_SWITCH = Pin(16, Pin.OUT)       # LED (GP16) → Switch-Element
 LED_INPUT  = Pin(17, Pin.OUT)       # LED (GP17) → Input-Element
 
+# PWM-Ausgänge für RGB-LED → Color-Picker-Element
+# App-Wert 0–255 → duty_u16: 0–65535 (Faktor 257)
+LED_R = PWM(Pin(19))
+LED_G = PWM(Pin(20))
+LED_B = PWM(Pin(21))
+for led in (LED_R, LED_G, LED_B):
+    led.freq(1000)
+
 
 # ---------------------------------------------------------------- #
 #  Setup                                                            #
@@ -49,6 +57,7 @@ remote.receive("switch1", bool)    # true = aktiv
 remote.receive("input1",  str)     # beliebige Texteingabe
 remote.receive("axisX",   int)     # Joystick X: -255 – +255
 remote.receive("axisY",   int)     # Joystick Y: -255 – +255
+remote.receive_color("color1")     # Color Picker: liefert (r, g, b) via get_color()
 
 
 # ---------------------------------------------------------------- #
@@ -77,6 +86,12 @@ while True:
         if command:
             LED_INPUT.value(1 if command.upper() == "ON" else 0)
 
+        # Color-Picker-Werte auf RGB-LED ausgeben
+        r, g, b = remote.get_color("color1")
+        LED_R.duty_u16(r * 257)
+        LED_G.duty_u16(g * 257)
+        LED_B.duty_u16(b * 257)
+
         # Slider-Wert an Display-Element der App senden
         remote.send("display1", slider1_val)
 
@@ -89,5 +104,8 @@ while True:
         LED_SLIDER.duty_u16(0)
         LED_SWITCH.value(0)
         LED_INPUT.value(0)
+        LED_R.duty_u16(0)
+        LED_G.duty_u16(0)
+        LED_B.duty_u16(0)
 
     time.sleep_ms(10)
