@@ -8,12 +8,12 @@ Unterstützte Protokolle:
 - **WiFi (WLAN-Hotspot + TCP)**
 
 Unterstützte Hardware:
-- **Raspberry Pi Pico 2W** – natives BLE, WiFi
+- **Raspberry Pi Pico 2W** und **ESP32** – natives BLE, WiFi
 
 Dieses Dokument beschreibt die Installation der **CCARemote MicroPython-Bibliothek**
 für den Raspberry Pi Pico 2 W in **Thonny** und **VS Code**.
 
-> Für **ESP32, ESP8266 und Arduino** steht die Arduino-Bibliothek unter
+> Die Arduino-Bibliothek für **ESP32, ESP8266 und Arduino** steht unter
 > [github.com/ccaprojects/CCARemote-Arduino](https://github.com/ccaprojects/CCARemote-Arduino) zur Verfügung.
 
 ---
