@@ -113,14 +113,16 @@ from CCARemote import CCA_BLE, CCA_WIFI, CCA_DEBUG_ALL, create_remote
 DEVICE_NAME = "MeinName"    # Gerätename (wird als "CCA-MeinName" angezeigt)
 CONNECTION  = CCA_BLE       # CCA_BLE  oder  CCA_WIFI
 PASSWORD    = ""            # Passwort (WiFi: min. 8 Zeichen / leer = ohne)
-DEBUG_LEVEL = CCA_DEBUG_ALL # CCA_DEBUG_OFF / _IN / _OUT / _ALL
+DEBUG_LEVEL     = CCA_DEBUG_ALL # CCA_DEBUG_OFF / _IN / _OUT / _ALL
+DEBUG_TIMESTAMP = True          # False = kein Debug Zeitstempel
 
 # Optional – nur setzen wenn Standardwert nicht passt:
 # DEVICE_PREFIX = "XYZ-"   # Standard: "CCA-"
 # TCP_PORT      = 4211      # Standard: 4210  (nur WiFi)
 # -----------------------------------------------------------
 
-remote = create_remote(DEVICE_NAME, CONNECTION, PASSWORD, DEBUG_LEVEL)
+remote = create_remote(DEVICE_NAME, CONNECTION, PASSWORD, DEBUG_LEVEL,
+                       show_timestamp=DEBUG_TIMESTAMP)
 
 LED_PIN = Pin("LED", Pin.OUT)  # Onboard-LED des Pico 2 W
 
@@ -150,6 +152,7 @@ Um zwischen BLE und WiFi zu wechseln, nur `CONNECTION` ändern – der restliche
 | `CONNECTION` | – | **Pflicht.** `CCA_BLE` oder `CCA_WIFI` |
 | `PASSWORD` | `""` | Passwort (BLE: AUTH-Passwort, WiFi: WPA2 ≥ 8 Zeichen) |
 | `DEBUG_LEVEL` | `CCA_DEBUG_OFF` | `CCA_DEBUG_OFF` / `CCA_DEBUG_IN` / `CCA_DEBUG_OUT` / `CCA_DEBUG_ALL` |
+| `DEBUG_TIMESTAMP` | `True` | `True` = Zeitstempel im Debug-Output / `False` = ohne Zeitstempel |
 | `DEVICE_PREFIX` | `"CCA-"` | Prefix für den Gerätenamen (optionaler Parameter von `create_remote`) |
 | `TCP_PORT` | `4210` | TCP-Port (optionaler Parameter von `create_remote`, nur WiFi) |
 
@@ -276,13 +279,15 @@ from CCARemote import CCA_BLE, CCA_DEBUG_ALL, create_remote
 from machine import Pin, PWM
 
 # ---- Konfiguration – hier anpassen! -----------------------
-DEVICE_NAME = "MeinName"
-CONNECTION  = CCA_BLE
-PASSWORD    = ""
-DEBUG_LEVEL = CCA_DEBUG_ALL
+DEVICE_NAME     = "MeinName"
+CONNECTION      = CCA_BLE
+PASSWORD        = ""
+DEBUG_LEVEL     = CCA_DEBUG_ALL
+DEBUG_TIMESTAMP = True          # False = kein Debug Zeitstempel
 # -----------------------------------------------------------
 
-remote = create_remote(DEVICE_NAME, CONNECTION, PASSWORD, DEBUG_LEVEL)
+remote = create_remote(DEVICE_NAME, CONNECTION, PASSWORD, DEBUG_LEVEL,
+                       show_timestamp=DEBUG_TIMESTAMP)
 
 # Pins der gemeinsamen Kathode RGB-LED (PWM-fähige Pins)
 pwm_r = PWM(Pin(13)); pwm_r.freq(1000)

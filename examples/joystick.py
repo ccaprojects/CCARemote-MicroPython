@@ -14,17 +14,19 @@ import time
 from CCARemote import CCA_BLE, CCA_WIFI, CCA_DEBUG_OFF, CCA_DEBUG_ALL, create_remote
 
 # ---- Konfiguration – hier anpassen! -----------------------
-DEVICE_NAME = "MeinName"    # Gerätename (wird als "CCA-MeinName" angezeigt)
-CONNECTION  = CCA_BLE       # CCA_BLE  oder  CCA_WIFI
-PASSWORD    = ""            # Passwort (WiFi: min. 8 Zeichen / leer = ohne)
-DEBUG_LEVEL = CCA_DEBUG_ALL # CCA_DEBUG_OFF / _IN / _OUT / _ALL
+DEVICE_NAME     = "MeinName"    # Gerätename (wird als "CCA-MeinName" angezeigt)
+CONNECTION      = CCA_BLE       # CCA_BLE  oder  CCA_WIFI
+PASSWORD        = ""            # Passwort (WiFi: min. 8 Zeichen / leer = ohne)
+DEBUG_LEVEL     = CCA_DEBUG_ALL # CCA_DEBUG_OFF / _IN / _OUT / _ALL
+DEBUG_TIMESTAMP = True          # False = kein Debug Zeitstempel
 
 # Optional – nur setzen wenn Standardwert nicht passt:
 # DEVICE_PREFIX = "XYZ-"   # Standard: "CCA-"
 # TCP_PORT      = 4211      # Standard: 4210  (nur WiFi)
 # -----------------------------------------------------------
 
-remote = create_remote(DEVICE_NAME, CONNECTION, PASSWORD, DEBUG_LEVEL)
+remote = create_remote(DEVICE_NAME, CONNECTION, PASSWORD, DEBUG_LEVEL,
+                       show_timestamp=DEBUG_TIMESTAMP)
 
 MOTOR_A = PWM(Pin(18))  # PWM-Pin Motor A (z.B. Vorwärts / Rückwärts)
 MOTOR_B = PWM(Pin(19))  # PWM-Pin Motor B (z.B. Links / Rechts)

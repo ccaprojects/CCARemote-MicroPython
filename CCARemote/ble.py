@@ -11,7 +11,7 @@
 
 import bluetooth
 import time
-from . import CCARemote
+from . import CCARemote, CCA_DEBUG_ALL
 
 # BLE IRQ Event-Codes (MicroPython bluetooth-Modul)
 _IRQ_CENTRAL_CONNECT    = 1
@@ -65,8 +65,8 @@ class CCARemoteBLE(CCARemote):
                 led.value(1 if remote.get("button1", False) else 0)
     """
 
-    def __init__(self, name, prefix="CCA-", password="", debug_level=0):
-        super().__init__(name, prefix, debug_level)
+    def __init__(self, name, prefix="CCA-", password="", debug_level=0, show_timestamp=True):
+        super().__init__(name, prefix, debug_level, show_timestamp)
         self._ble               = bluetooth.BLE()
         self._conn_handle       = None
         self._control_handle    = None
@@ -88,8 +88,8 @@ class CCARemoteBLE(CCARemote):
         Passwort und Debug-Level werden über den Konstruktor oder create_remote() gesetzt.
         """
 
-        print("\nCCA Remote startet (BLE)...")
-        print("Gerätename:", self._device_name)
+        print("\n" + self._ts() + "CCA Remote startet (BLE)...")
+        print(self._ts() + "Gerätename: " + self._device_name)
 
         self._ble.active(True)
         self._ble.irq(self._ble_irq)
@@ -106,10 +106,11 @@ class CCARemoteBLE(CCARemote):
 
         self._start_advertising()
 
-        print("BLE Server läuft!")
+        print(self._ts() + "BLE Server läuft!")
         if self._password:
-            print("Passwort aktiv: AUTH-Befehl erforderlich.")
-        print("Warte auf Verbindung...\n")
+            pwd = self._password if self._debug_mode == CCA_DEBUG_ALL else "*" * len(self._password)
+            print(self._ts() + "BLE Passwort: " + pwd)
+        print(self._ts() + "Warte auf Verbindung...\n")
 
     def handle(self):
         """Muss in der Hauptschleife aufgerufen werden!
@@ -172,7 +173,7 @@ class CCARemoteBLE(CCARemote):
             self._authenticated  = not bool(self._password)
             self._pending_resync = True
             if self._debug_mode:
-                print("[CCA] Verbindung hergestellt")
+                print(self._ts() + "[CCA] Verbindung hergestellt")
 
         elif event == _IRQ_CENTRAL_DISCONNECT:
             self._conn_handle       = None
@@ -180,7 +181,7 @@ class CCARemoteBLE(CCARemote):
             self._authenticated     = False
             self._restart_advertise = True  # Neustart in handle() – nicht hier!
             if self._debug_mode:
-                print("[CCA] Verbindung getrennt")
+                print(self._ts() + "[CCA] Verbindung getrennt")
 
         elif event == _IRQ_GATTS_WRITE:
             conn_handle, attr_handle = data
@@ -202,14 +203,14 @@ class CCARemoteBLE(CCARemote):
                     if value == "AUTH:" + self._password:
                         self._authenticated  = True
                         self._pending_resync = True
-                        print("BLE Authentifizierung erfolgreich!")
+                        print(self._ts() + "BLE Authentifizierung erfolgreich!")
                         try:
                             self._ble.gatts_write(self._display_handle, b"AUTH:OK\n")
                             self._ble.gatts_notify(self._conn_handle, self._display_handle)
                         except Exception:
                             pass
                     else:
-                        print("BLE Authentifizierung fehlgeschlagen! Verbindung wird getrennt.")
+                        print(self._ts() + "BLE Authentifizierung fehlgeschlagen! Verbindung wird getrennt.")
                         if self._conn_handle is not None:
                             try:
                                 self._ble.gatts_write(self._display_handle, b"AUTH:FAIL\n")
@@ -239,7 +240,7 @@ class CCARemoteBLE(CCARemote):
                 if self._conn_handle is not None:
                     self._ble.gatts_notify(self._conn_handle, self._display_handle)
             except Exception as e:
-                print("[CCA] BLE Sendefehler:", e)
+                print(self._ts() + "[CCA] BLE Sendefehler: " + str(e))
 
     def _resync_display(self):
         """Sendet alle gespeicherten Display-Werte erneut an die App."""

@@ -30,9 +30,10 @@ class CCARemote:
     Verwende: create_remote(), CCARemoteBLE, CCARemoteWiFi, CCARemoteMQTT
     """
 
-    def __init__(self, name, prefix="CCA-", debug_level=CCA_DEBUG_OFF):
+    def __init__(self, name, prefix="CCA-", debug_level=CCA_DEBUG_OFF, show_timestamp=True):
         self._device_name      = prefix + name
         self._debug_mode       = debug_level
+        self._show_timestamp   = show_timestamp
         self._command_received = False
         self._last_command     = ""
         # cmd → callback (ohne oder mit Wert-Parameter)
@@ -63,7 +64,7 @@ class CCARemote:
             CCA_DEBUG_OUT: "[CCA] Debug-Modus: nur OUT",
             CCA_DEBUG_ALL: "[CCA] Debug-Modus: IN + OUT",
         }
-        print(msgs.get(mode, "[CCA] Debug-Modus gesetzt"))
+        print(self._ts() + msgs.get(mode, "[CCA] Debug-Modus gesetzt"))
 
     def on_command(self, cmd, callback):
         """Registriert einen Callback für einen Befehl.
@@ -74,7 +75,7 @@ class CCARemote:
         """
         self._callbacks[cmd] = callback
         if self._debug_mode != CCA_DEBUG_OFF:
-            print("Befehl registriert:", cmd)
+            print("{}Befehl registriert: {}".format(self._ts(), cmd))
 
     def receive(self, cmd, value_type=str):
         """Verknüpft eine Element-ID mit einem Typ für automatische Konvertierung.
@@ -106,11 +107,11 @@ class CCARemote:
                 self._values[cmd] = value
 
             if self._debug_mode & CCA_DEBUG_IN:
-                print("[CCA] IN ", cmd, "=", value)
+                print(self._ts() + "[CCA] IN  {} = {}".format(cmd, value))
 
         self._callbacks[cmd] = _handler
         if self._debug_mode != CCA_DEBUG_OFF:
-            print("Variable gebunden:", cmd, "({})".format(value_type.__name__))
+            print("{}Variable gebunden: {} ({})".format(self._ts(), cmd, value_type.__name__))
 
     def receive_color(self, cmd):
         """Verknüpft eine Color-Picker-ID für automatische R/G/B-Konvertierung.
@@ -136,11 +137,11 @@ class CCARemote:
 
             if self._debug_mode & CCA_DEBUG_IN:
                 r_v, g_v, b_v = self._values[cmd]
-                print("[CCA] IN  {} = R:{} G:{} B:{}".format(cmd, r_v, g_v, b_v))
+                print(self._ts() + "[CCA] IN  {} = R:{} G:{} B:{}".format(cmd, r_v, g_v, b_v))
 
         self._callbacks[cmd] = _handler
         if self._debug_mode != CCA_DEBUG_OFF:
-            print("Farbe gebunden: {} (r,g,b)".format(cmd))
+            print("{}Farbe gebunden: {} (r,g,b)".format(self._ts(), cmd))
 
     def get_color(self, cmd, default=(0, 0, 0)):
         """Gibt den zuletzt empfangenen RGB-Farbwert zurück.
@@ -207,9 +208,9 @@ class CCARemote:
         self._display_values[key] = str_val
         if self._debug_mode & CCA_DEBUG_OUT:
             if str_val:
-                print("[CCA] OUT", key, "=", str_val)
+                print(self._ts() + "[CCA] OUT {} = {}".format(key, str_val))
             else:
-                print("[CCA] OUT", key)
+                print(self._ts() + "[CCA] OUT {}".format(key))
         self._send_internal(key, str_val)
 
     # ---------------------------------------------------------------- #
@@ -229,6 +230,18 @@ class CCARemote:
     def _send_internal(self, key, value):
         """Intern – wird von Unterklassen überschrieben."""
         raise NotImplementedError
+
+    def _ts(self):
+        """Zeitstempel '[HH:MM:SS.mmm] ' seit Boot – leer wenn show_timestamp=False."""
+        if not self._show_timestamp:
+            return ""
+        t = time.ticks_ms()
+        ms = t % 1000
+        t //= 1000
+        s = t % 60
+        m = (t // 60) % 60
+        h = (t // 3600) % 24
+        return "[{:02d}:{:02d}:{:02d}.{:03d}] ".format(h, m, s, ms)
 
     def _check_watchdogs(self):
         """Setzt Variablen auf 0 wenn sie länger als ihr Timeout nicht aktualisiert wurden."""
@@ -253,8 +266,8 @@ class CCARemote:
         """Verarbeitet einen empfangenen Befehlsstring.
 
         Format:  "key:value"             → ein Befehl mit Wert
-                 "key"                   → ein Befehl ohne Wert
-                 "key1:val1,key2:val2"   → mehrere Befehle (kommasepariert)
+                "key"                   → ein Befehl ohne Wert
+                "key1:val1,key2:val2"   → mehrere Befehle (kommasepariert)
         """
         parts = cmd.split(",")
         for part in parts:
@@ -274,11 +287,11 @@ class CCARemote:
                     if key in self._watchdog_last:
                         self._watchdog_last[key] = time.ticks_ms()
                 else:
-                    print("Unbekannter Befehl:", key)
+                    print(self._ts() + "Unbekannter Befehl: " + str(key))
             else:
                 if part in self._callbacks:
                     if self._debug_mode & CCA_DEBUG_IN:
-                        print("[CCA] IN ", part, "(kein Wert)")
+                        print(self._ts() + "[CCA] IN  {} (kein Wert)".format(part))
                     try:
                         self._callbacks[part]()
                     except TypeError:
@@ -286,7 +299,7 @@ class CCARemote:
                     if part in self._watchdog_last:
                         self._watchdog_last[part] = time.ticks_ms()
                 else:
-                    print("Unbekannter Befehl:", part)
+                    print(self._ts() + "Unbekannter Befehl: " + str(part))
 
 
 # ------------------------------------------------------------------ #
@@ -294,7 +307,7 @@ class CCARemote:
 # ------------------------------------------------------------------ #
 
 def create_remote(name, connection=CCA_BLE, password="", debug_level=CCA_DEBUG_OFF,
-                  prefix="CCA-", port=4210):
+                prefix="CCA-", port=4210, show_timestamp=True):
     """Erstellt das passende remote-Objekt anhand der Konfigurationsparameter.
 
     Empfohlene Verwendung:
@@ -319,8 +332,10 @@ def create_remote(name, connection=CCA_BLE, password="", debug_level=CCA_DEBUG_O
     if connection == CCA_WIFI:
         from CCARemote.wifi import CCARemoteWiFi
         return CCARemoteWiFi(name, prefix=prefix, password=password,
-                             port=port, debug_level=debug_level)
+                            port=port, debug_level=debug_level,
+                            show_timestamp=show_timestamp)
     else:
         from CCARemote.ble import CCARemoteBLE
         return CCARemoteBLE(name, prefix=prefix, password=password,
-                            debug_level=debug_level)
+                            debug_level=debug_level,
+                            show_timestamp=show_timestamp)

@@ -12,7 +12,7 @@
 import network
 import socket
 import time
-from . import CCARemote
+from . import CCARemote, CCA_DEBUG_ALL
 
 
 class CCARemoteWiFi(CCARemote):
@@ -43,8 +43,8 @@ class CCARemoteWiFi(CCARemote):
                 led.value(1 if remote.get("switch1", False) else 0)
     """
 
-    def __init__(self, name, prefix="CCA-", password="", port=4210, debug_level=0):
-        super().__init__(name, prefix, debug_level)
+    def __init__(self, name, prefix="CCA-", password="", port=4210, debug_level=0, show_timestamp=True):
+        super().__init__(name, prefix, debug_level, show_timestamp)
         self._password          = password
         self._port              = port
         self._ap                = None
@@ -63,8 +63,8 @@ class CCARemoteWiFi(CCARemote):
 
         Passwort, Port und Debug-Level werden über den Konstruktor oder create_remote() gesetzt.
         """
-        print("\nCCA Remote startet (WiFi)...")
-        print("Gerätename:", self._device_name)
+        print("\n" + self._ts() + "CCA Remote startet (WiFi)...")
+        print(self._ts() + "Gerätename: " + self._device_name)
 
         self._ap = network.WLAN(network.WLAN.IF_AP)
         self._ap.active(False)
@@ -85,17 +85,20 @@ class CCARemoteWiFi(CCARemote):
         self._wifi_enabled = True
         ip = self._ap.ifconfig()[0]
         enc = "WPA2" if self._password else "offen"
-        print("WiFi AP:", self._device_name, "(" + enc + ")")
-        print("IP-Adresse:", ip)
+        print(self._ts() + "WiFi AP: {} ({})".format(self._device_name, enc))
+        if self._password:
+            pwd = self._password if self._debug_mode == CCA_DEBUG_ALL else "*" * len(self._password)
+            print(self._ts() + "WiFi Passwort: " + pwd)
+        print(self._ts() + "IP-Adresse: " + ip)
 
         self._tcp_server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self._tcp_server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self._tcp_server_socket.bind(("", self._port))
         self._tcp_server_socket.listen(1)
         self._tcp_server_socket.setblocking(False)
-        print("TCP Server läuft auf Port", self._port)
+        print(self._ts() + "TCP Server läuft auf Port " + str(self._port))
 
-        print("CCA Remote bereit!\n")
+        print(self._ts() + "CCA Remote bereit!\n")
 
     def handle(self):
         """Muss in der Hauptschleife aufgerufen werden!
@@ -110,7 +113,7 @@ class CCARemoteWiFi(CCARemote):
         if now_connected != self._prev_connected:
             self._prev_connected = now_connected
             if self._debug_mode:
-                print("[CCA]", "Verbindung hergestellt" if now_connected else "Verbindung getrennt")
+                print(self._ts() + ("[CCA] Verbindung hergestellt" if now_connected else "[CCA] Verbindung getrennt"))
 
         # Neuen TCP-Client annehmen
         if self._tcp_client is None:
