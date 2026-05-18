@@ -11,7 +11,7 @@
 
 import bluetooth
 import time
-from . import CCARemote, CCA_DEBUG_ALL
+from . import CCARemote, CCA_DEBUG_ALL, CCA_PROTOCOL_VERSION, __version__
 
 # BLE IRQ Event-Codes (MicroPython bluetooth-Modul)
 _IRQ_CENTRAL_CONNECT    = 1
@@ -90,6 +90,8 @@ class CCARemoteBLE(CCARemote):
 
         print("\n" + self._ts() + "CCA Remote startet (BLE)...")
         print(self._ts() + "Gerätename: " + self._device_name)
+        if self._debug_mode == CCA_DEBUG_ALL:
+            print(self._ts() + "[CCA] Lib: {}  |  Protokoll: {}".format(__version__, CCA_PROTOCOL_VERSION))
 
         self._ble.active(True)
         self._ble.irq(self._ble_irq)

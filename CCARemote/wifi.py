@@ -12,7 +12,7 @@
 import network
 import socket
 import time
-from . import CCARemote, CCA_DEBUG_ALL
+from . import CCARemote, CCA_DEBUG_ALL, CCA_PROTOCOL_VERSION, __version__
 
 
 class CCARemoteWiFi(CCARemote):
@@ -65,6 +65,8 @@ class CCARemoteWiFi(CCARemote):
         """
         print("\n" + self._ts() + "CCA Remote startet (WiFi)...")
         print(self._ts() + "Gerätename: " + self._device_name)
+        if self._debug_mode == CCA_DEBUG_ALL:
+            print(self._ts() + "[CCA] Lib: {}  |  Protokoll: {}".format(__version__, CCA_PROTOCOL_VERSION))
 
         self._ap = network.WLAN(network.WLAN.IF_AP)
         self._ap.active(False)
