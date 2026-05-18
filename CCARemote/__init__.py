@@ -8,7 +8,10 @@
 import time
 
 # Version der Bibliothek
-__version__ = "1.2.0"
+__version__ = "1.1.0"
+# Protokollversion – wird nur bei Breaking Changes erhöht (synchron mit Arduino-Lib und App)
+CCA_PROTOCOL_VERSION = "1"
+CCA_PLATFORM         = "micropython"
 
 # ------------------------------------------------------------------ #
 #  Verbindungstyp-Konstanten                                          #
@@ -41,7 +44,12 @@ class CCARemote:
         # cmd → aktueller Wert (für remote.get())
         self._values           = {}
         # key → Anzeige-Wert (für send / /display)
-        self._display_values   = {}
+        # Handshake-Keys werden bei jeder Verbindung via _resync_display() gesendet
+        self._display_values   = {
+            "protocol":   CCA_PROTOCOL_VERSION,
+            "platform":   CCA_PLATFORM,
+            "libVersion": __version__,
+        }
         # Watchdog: cmd → timeout_ms / letzter Update-Zeitstempel
         self._watchdogs        = {}
         self._watchdog_last    = {}

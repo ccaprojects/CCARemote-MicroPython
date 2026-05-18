@@ -55,8 +55,15 @@ remote.receive("button1", bool)    # true = gedrückt
 remote.receive("slider1", int)     # 0 – 255
 remote.receive("switch1", bool)    # true = aktiv
 remote.receive("input1",  str)     # beliebige Texteingabe
+
+# Joystick
 remote.receive("axisX",   int)     # Joystick X: -255 – +255
 remote.receive("axisY",   int)     # Joystick Y: -255 – +255
+# Automatischer Nullwert bei Verbindungsverlust für Joystick
+remote.watchdog("axisX", 500);  // axisX → 0 wenn 500 ms kein Update
+remote.watchdog("axisY", 500);  // axisY → 0 wenn 500 ms kein Update
+
+# Color-Picker
 remote.receive_color("color1")     # Color Picker: liefert (r, g, b) via get_color()
 
 
