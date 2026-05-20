@@ -236,7 +236,9 @@ class CCARemoteBLE(CCARemote):
                     return
 
                 if value.startswith("ping:"):
-                    return  # Heartbeat der App
+                    return
+                if value.startswith("disconnect:"):
+                    return
 
                 self._last_command     = value
                 self._command_received = True
