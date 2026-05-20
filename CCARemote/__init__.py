@@ -50,9 +50,10 @@ class CCARemote:
             "platform":   CCA_PLATFORM,
             "libVersion": __version__,
         }
-        # Watchdog: cmd → timeout_ms / letzter Update-Zeitstempel
+        # Watchdog: cmd → timeout_ms / letzter Update-Zeitstempel / bereits gefeuert
         self._watchdogs        = {}
         self._watchdog_last    = {}
+        self._watchdog_fired   = {}
 
     # ---------------------------------------------------------------- #
     #  Öffentliche API                                                  #
@@ -172,8 +173,9 @@ class CCARemote:
             remote.watchdog("axisX", 500)
             remote.watchdog("axisY", 500)
         """
-        self._watchdogs[cmd]     = timeout_ms
-        self._watchdog_last[cmd] = time.ticks_ms()
+        self._watchdogs[cmd]      = timeout_ms
+        self._watchdog_last[cmd]  = time.ticks_ms()
+        self._watchdog_fired[cmd] = False
 
     def get(self, cmd, default=None):
         """Gibt den zuletzt empfangenen Wert für eine Element-ID zurück.
@@ -253,13 +255,28 @@ class CCARemote:
 
     def _check_watchdogs(self):
         """Setzt Variablen auf 0 wenn sie länger als ihr Timeout nicht aktualisiert wurden."""
-        if not self._watchdogs:
+        if not self._watchdogs or not self.is_connected():
             return
         now = time.ticks_ms()
         for cmd, timeout_ms in self._watchdogs.items():
-            if time.ticks_diff(now, self._watchdog_last.get(cmd, now)) >= timeout_ms:
-                self._watchdog_last[cmd] = now
+            if (not self._watchdog_fired.get(cmd, False) and
+                    time.ticks_diff(now, self._watchdog_last.get(cmd, now)) >= timeout_ms):
                 self._process_command("{}:0".format(cmd))
+                self._watchdog_fired[cmd] = True  # nach _process_command, sonst sofort wieder False
+
+    def _fire_all_watchdogs(self):
+        """Setzt alle Watchdog-Variablen sofort auf 0 (einmalig bei Verbindungsabbruch)."""
+        now = time.ticks_ms()
+        for cmd in self._watchdogs:
+            self._watchdog_last[cmd] = now
+            self._process_command("{}:0".format(cmd))
+
+    def _reset_watchdog_timers(self):
+        """Setzt alle Watchdog-Zeitstempel zurück (bei Verbindungsaufbau)."""
+        now = time.ticks_ms()
+        for cmd in self._watchdog_last:
+            self._watchdog_last[cmd]  = now
+            self._watchdog_fired[cmd] = False
 
     def _resync_display(self):
         """Sendet alle gespeicherten Display-Werte erneut an die App."""
@@ -293,7 +310,8 @@ class CCARemote:
                     except TypeError:
                         self._callbacks[key]()
                     if key in self._watchdog_last:
-                        self._watchdog_last[key] = time.ticks_ms()
+                        self._watchdog_last[key]  = time.ticks_ms()
+                        self._watchdog_fired[key] = False
                 else:
                     print(self._ts() + "Unbekannter Befehl: " + str(key))
             else:
@@ -305,7 +323,8 @@ class CCARemote:
                     except TypeError:
                         self._callbacks[part]("")
                     if part in self._watchdog_last:
-                        self._watchdog_last[part] = time.ticks_ms()
+                        self._watchdog_last[part]  = time.ticks_ms()
+                        self._watchdog_fired[part] = False
                 else:
                     print(self._ts() + "Unbekannter Befehl: " + str(part))
 

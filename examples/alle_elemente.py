@@ -4,7 +4,7 @@
 #  Empfangene Werte werden im REPL ausgegeben.
 # =============================================================
 #  Erfordert die kostenlose CCA Remote App (Android / iOS)
-#  Raspberry Pi Pico 2 W  |  MicroPython ≥ 1.23
+#  Raspberry Pi Pico 2 W or ESP32  |  MicroPython ≥ 1.23
 # =============================================================
 
 from machine import Pin, PWM

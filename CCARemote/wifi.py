@@ -6,7 +6,7 @@
 # Developed by A. Eckhart (HTL Anichstraße) - MIT – see LICENSE
 #
 # Requirements:
-#   Raspberry Pi Pico 2 W with MicroPython >= 1.23
+#   Raspberry Pi Pico 2 W or ESP32 with MicroPython >= 1.23
 #   The network module is included in the standard firmware.
 
 import network
@@ -53,6 +53,7 @@ class CCARemoteWiFi(CCARemote):
         self._tcp_server_socket = None
         self._tcp_client        = None
         self._tcp_buf           = ""
+        self._last_rx_ms        = 0
 
     # ---------------------------------------------------------------- #
     #  Öffentliche Methoden                                             #
@@ -111,10 +112,18 @@ class CCARemoteWiFi(CCARemote):
         if not self._wifi_enabled or self._tcp_server_socket is None:
             return
 
+        # Aktivitäts-Timeout: kein Ping/Daten seit 2500 ms → Verbindung tot
+        if self._tcp_client is not None and self._last_rx_ms > 0:
+            if time.ticks_diff(time.ticks_ms(), self._last_rx_ms) >= 2500:
+                self._fire_all_watchdogs()
+                self._tcp_disconnect()
+
         # Verbindungsstatus überwachen und im Debug-Modus ausgeben
         now_connected = self.is_connected()
         if now_connected != self._prev_connected:
             self._prev_connected = now_connected
+            if not now_connected:
+                self._fire_all_watchdogs()
             if self._debug_mode:
                 print(self._ts() + ("[CCA] Verbindung hergestellt" if now_connected else "[CCA] Verbindung getrennt"))
 
@@ -124,7 +133,9 @@ class CCARemoteWiFi(CCARemote):
                 conn, _ = self._tcp_server_socket.accept()
                 conn.setblocking(False)
                 self._tcp_client = conn
-                self._tcp_buf = ""
+                self._tcp_buf    = ""
+                self._last_rx_ms = time.ticks_ms()
+                self._reset_watchdog_timers()
                 for k, v in self._display_values.items():
                     try:
                         conn.sendall("{}:{}\n".format(k, v).encode())
@@ -145,7 +156,10 @@ class CCARemoteWiFi(CCARemote):
                         if line == "disconnect:1":
                             self._tcp_disconnect()
                             break
+                        elif line.startswith("ping:") or line == "ping":
+                            self._last_rx_ms = time.ticks_ms()
                         elif line:
+                            self._last_rx_ms = time.ticks_ms()
                             self._process_command(line)
                 else:
                     self._tcp_disconnect()
@@ -168,7 +182,8 @@ class CCARemoteWiFi(CCARemote):
             except Exception:
                 pass
             self._tcp_client = None
-        self._tcp_buf = ""
+        self._tcp_buf    = ""
+        self._last_rx_ms = 0
 
     def _send_internal(self, key, value):
         """Pusht Wert per TCP; speichert ihn für spätere Resync."""

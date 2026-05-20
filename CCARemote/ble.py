@@ -6,7 +6,7 @@
 # Developed by A. Eckhart (HTL Anichstraße) - MIT – see LICENSE
 #
 # Requirements:
-#   Raspberry Pi Pico 2 W with MicroPython >= 1.23
+#   Raspberry Pi Pico 2 W or ESP32 with MicroPython >= 1.23
 #   The bluetooth module is included in the standard firmware.
 
 import bluetooth
@@ -74,9 +74,10 @@ class CCARemoteBLE(CCARemote):
         self._connected         = False
         self._password          = password
         self._authenticated     = False
-        self._restart_advertise = False  # wird in handle() ausgewertet
-        self._pending_auth_fail = False  # wird in handle() ausgewertet
-        self._pending_resync    = False  # wird in handle() ausgewertet
+        self._restart_advertise       = False  # wird in handle() ausgewertet
+        self._pending_auth_fail       = False  # wird in handle() ausgewertet
+        self._pending_resync          = False  # wird in handle() ausgewertet
+        self._pending_fire_watchdogs  = False  # wird in handle() ausgewertet
 
     # ---------------------------------------------------------------- #
     #  Öffentliche Methoden                                             #
@@ -119,6 +120,9 @@ class CCARemoteBLE(CCARemote):
         """Muss in der Hauptschleife aufgerufen werden!
         Verarbeitet empfangene BLE-Befehle.
         """
+        if self._pending_fire_watchdogs:
+            self._pending_fire_watchdogs = False
+            self._fire_all_watchdogs()
         self._check_watchdogs()
         # Advertising-Neustart außerhalb des IRQ-Callbacks durchführen
         if self._restart_advertise:
@@ -175,14 +179,16 @@ class CCARemoteBLE(CCARemote):
             # Ohne Passwort sofort authentifiziert
             self._authenticated  = not bool(self._password)
             self._pending_resync = True
+            self._reset_watchdog_timers()
             if self._debug_mode:
                 print(self._ts() + "[CCA] Verbindung hergestellt")
 
         elif event == _IRQ_CENTRAL_DISCONNECT:
-            self._conn_handle       = None
-            self._connected         = False
-            self._authenticated     = False
-            self._restart_advertise = True  # Neustart in handle() – nicht hier!
+            self._conn_handle            = None
+            self._connected              = False
+            self._authenticated          = False
+            self._restart_advertise      = True   # Neustart in handle() – nicht hier!
+            self._pending_fire_watchdogs = True   # _fire_all_watchdogs() in handle()
             if self._debug_mode:
                 print(self._ts() + "[CCA] Verbindung getrennt")
 
@@ -206,6 +212,7 @@ class CCARemoteBLE(CCARemote):
                     if value == "AUTH:" + self._password:
                         self._authenticated  = True
                         self._pending_resync = True
+                        self._reset_watchdog_timers()
                         print(self._ts() + "BLE Authentifizierung erfolgreich!")
                         try:
                             self._ble.gatts_write(self._display_handle, b"AUTH:OK\n")
