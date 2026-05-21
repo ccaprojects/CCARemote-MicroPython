@@ -54,6 +54,8 @@ class CCARemote:
         self._watchdogs        = {}
         self._watchdog_last    = {}
         self._watchdog_fired   = {}
+        # Farb-Bindings – Watchdog sendet "0;0;0" statt "0"
+        self._color_keys       = set()
 
     # ---------------------------------------------------------------- #
     #  Öffentliche API                                                  #
@@ -133,6 +135,7 @@ class CCARemote:
             cmd: Element-ID des Color-Pickers aus der CCA Remote App
         """
         self._values[cmd] = (0, 0, 0)
+        self._color_keys.add(cmd)
 
         def _handler(value):
             try:
@@ -253,6 +256,9 @@ class CCARemote:
         h = (t // 3600) % 24
         return "[{:02d}:{:02d}:{:02d}.{:03d}] ".format(h, m, s, ms)
 
+    def _watchdog_zero(self, cmd):
+        return "0;0;0" if cmd in self._color_keys else "0"
+
     def _check_watchdogs(self):
         """Setzt Variablen auf 0 wenn sie länger als ihr Timeout nicht aktualisiert wurden."""
         if not self._watchdogs or not self.is_connected():
@@ -261,7 +267,7 @@ class CCARemote:
         for cmd, timeout_ms in self._watchdogs.items():
             if (not self._watchdog_fired.get(cmd, False) and
                     time.ticks_diff(now, self._watchdog_last.get(cmd, now)) >= timeout_ms):
-                self._process_command("{}:0".format(cmd))
+                self._process_command("{}:{}".format(cmd, self._watchdog_zero(cmd)))
                 self._watchdog_fired[cmd] = True  # nach _process_command, sonst sofort wieder False
 
     def _fire_all_watchdogs(self):
@@ -269,7 +275,7 @@ class CCARemote:
         now = time.ticks_ms()
         for cmd in self._watchdogs:
             self._watchdog_last[cmd] = now
-            self._process_command("{}:0".format(cmd))
+            self._process_command("{}:{}".format(cmd, self._watchdog_zero(cmd)))
 
     def _reset_watchdog_timers(self):
         """Setzt alle Watchdog-Zeitstempel zurück (bei Verbindungsaufbau)."""
