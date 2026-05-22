@@ -8,7 +8,7 @@
 import time
 
 # Version der Bibliothek
-__version__ = "1.1.0"
+__version__ = "1.1.1"
 # Protokollversion – wird nur bei Breaking Changes erhöht (synchron mit Arduino-Lib und App)
 CCA_PROTOCOL_VERSION = "1"
 CCA_PLATFORM         = "micropython"
