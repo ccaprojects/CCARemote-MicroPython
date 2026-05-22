@@ -8,9 +8,9 @@
 import time
 
 # Version der Bibliothek
-__version__ = "1.1.1"
+__version__ = "1.2.0"
 # Protokollversion – wird nur bei Breaking Changes erhöht (synchron mit Arduino-Lib und App)
-CCA_PROTOCOL_VERSION = "1"
+CCA_PROTOCOL_VERSION = "2"
 CCA_PLATFORM         = "micropython"
 
 # ------------------------------------------------------------------ #
@@ -179,6 +179,22 @@ class CCARemote:
         self._watchdogs[cmd]      = timeout_ms
         self._watchdog_last[cmd]  = time.ticks_ms()
         self._watchdog_fired[cmd] = False
+
+    def set_profile(self, config_string):
+        """Bettet eine Profil-Definition in den Controller ein.
+
+        Der Config-String wird beim Verbindungsaufbau an die App übertragen.
+        Die App erstellt das Profil (inkl. Layout) automatisch, falls es noch
+        nicht existiert, und wechselt dann zu diesem Profil.
+
+        Den String generiert man in der App unter Profil → Exportieren →
+        „Als Arduino-String kopieren".
+
+        Beispiel:
+            PROFILE = "v:1|nm:MeinGerät|sl:speed:0:255@10,10,340,80,..."
+            remote.set_profile(PROFILE)
+        """
+        self._display_values["profileConfig"] = config_string
 
     def get(self, cmd, default=None):
         """Gibt den zuletzt empfangenen Wert für eine Element-ID zurück.
