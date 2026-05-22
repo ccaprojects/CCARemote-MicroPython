@@ -215,6 +215,26 @@ class CCARemote:
                 str_val = str(value)
             self._send_if_changed(key, str_val)
 
+    def send_always(self, key, value=None, decimals=None):
+        """Wie send(), aber sendet auch bei unverändertem Wert (für Charts)."""
+        if value is None:
+            colon = key.find(":")
+            if colon > 0:
+                self._display_values[key[:colon]] = key[colon + 1:]
+                self._send_internal(key[:colon], key[colon + 1:])
+            else:
+                self._send_internal(key, "")
+        else:
+            if isinstance(value, float):
+                d = decimals if decimals is not None else 1
+                str_val = "{:.{}f}".format(value, d)
+            else:
+                str_val = str(value)
+            self._display_values[key] = str_val
+            if self._debug_mode & CCA_DEBUG_OUT:
+                print(self._ts() + "[CCA] OUT {} = {}".format(key, str_val))
+            self._send_internal(key, str_val)
+
     def _send_if_changed(self, key, str_val):
         if self._display_values.get(key) == str_val:
             return
