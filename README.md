@@ -187,6 +187,15 @@ remote.receive("text1",   str)     # str   – für Texteingabe
 
 Werte abrufen mit `remote.get("element_id", default)`.
 
+Mit `resync=True` wird der aktuelle Variablenwert bei jedem Reconnect automatisch zur App
+gesendet — so bleibt die Anzeige nach einem Verbindungsabbruch mit dem MCU-Zustand synchron:
+
+```python
+remote.receive("speed",  int,  resync=True)   # Slider – Wert bei Reconnect senden
+remote.receive("power",  bool, resync=True)   # Switch – Zustand bei Reconnect senden
+remote.receive_color("color1", resync=True)   # Color Picker – Farbe bei Reconnect senden
+```
+
 > **Joystick:** Jede Achse hat eine eigene Element-ID:
 > ```python
 > remote.receive("axisX", int)  # Joystick X (−255 – +255)

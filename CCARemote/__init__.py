@@ -56,6 +56,8 @@ class CCARemote:
         self._watchdog_fired   = {}
         # Farb-Bindings – Watchdog sendet "0;0;0" statt "0"
         self._color_keys       = set()
+        # Empfangs-Keys, deren aktueller Wert bei Reconnect zur App gesendet wird
+        self._resync_keys      = set()
 
     # ---------------------------------------------------------------- #
     #  Öffentliche API                                                  #
@@ -88,7 +90,7 @@ class CCARemote:
         if self._debug_mode != CCA_DEBUG_OFF:
             print("{}Befehl registriert: {}".format(self._ts(), cmd))
 
-    def receive(self, cmd, value_type=str):
+    def receive(self, cmd, value_type=str, resync=False):
         """Verknüpft eine Element-ID mit einem Typ für automatische Konvertierung.
 
         Werte abrufen mit: remote.get("element_id")
@@ -96,10 +98,13 @@ class CCARemote:
         Args:
             cmd:        Element-ID aus der CCA Remote App
             value_type: Typ für auto. Konvertierung – bool, int, float oder str
+            resync:     True = aktuellen Wert bei Reconnect zur App senden
         """
         # Standardwert je nach Typ
         default = {bool: False, int: 0, float: 0.0}.get(value_type, "")
         self._values[cmd] = default
+        if resync:
+            self._resync_keys.add(cmd)
 
         def _handler(value):
             if value_type is bool:
@@ -124,7 +129,7 @@ class CCARemote:
         if self._debug_mode != CCA_DEBUG_OFF:
             print("{}Variable gebunden: {} ({})".format(self._ts(), cmd, value_type.__name__))
 
-    def receive_color(self, cmd):
+    def receive_color(self, cmd, resync=False):
         """Verknüpft eine Color-Picker-ID für automatische R/G/B-Konvertierung.
 
         Werte abrufen mit: r, g, b = remote.get_color("color1")
@@ -132,10 +137,13 @@ class CCARemote:
         Wert-Format der App: R;G;B  (z.B. "255;128;0")
 
         Args:
-            cmd: Element-ID des Color-Pickers aus der CCA Remote App
+            cmd:    Element-ID des Color-Pickers aus der CCA Remote App
+            resync: True = aktuellen Farbwert bei Reconnect zur App senden
         """
         self._values[cmd] = (0, 0, 0)
         self._color_keys.add(cmd)
+        if resync:
+            self._resync_keys.add(cmd)
 
         def _handler(value):
             try:
@@ -324,6 +332,19 @@ class CCARemote:
         """Sendet alle gespeicherten Display-Werte erneut an die App."""
         for key, value in self._display_values.items():
             self._send_internal(key, value)
+        for cmd in self._resync_keys:
+            val = self._values.get(cmd)
+            if val is None:
+                continue
+            if cmd in self._color_keys:
+                r, g, b = val if isinstance(val, tuple) else (0, 0, 0)
+                self._send_internal(cmd, "{};{};{}".format(r, g, b))
+            elif isinstance(val, bool):
+                self._send_internal(cmd, "1" if val else "0")
+            elif isinstance(val, float):
+                self._send_internal(cmd, "{:.1f}".format(val))
+            else:
+                self._send_internal(cmd, str(val))
 
     # ---------------------------------------------------------------- #
     #  Interne Hilfsmethode                                             #
