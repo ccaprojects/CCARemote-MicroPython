@@ -273,11 +273,15 @@ remote.on_command("slider1", lambda v: print("Slider:", v))
 
 Bettet eine Profil-Definition in den Controller ein. Der Config-String wird beim Verbindungsaufbau an die App übertragen; die App erstellt das Profil automatisch, falls es noch nicht existiert, und wechselt dann zu diesem Profil.
 
-Den String generiert man in der App unter **Profil → Exportieren → „Als Arduino-String kopieren"**.
+Den String generiert man in der App unter **Profil → „Profil-Code kopieren" → Plattform wählen**.
 
 ```python
 # Exportierten Profil-String hier einfügen:
-PROFILE = "v:3|nm:MeinGerät|sl:speed:0:255@10,10,340,80|..."
+PROFILE = (
+    "v:3"
+    "|nm:MeinGerät"
+    "|sl:speed:0:255@10,10,340,80|..."
+)
 
 remote = create_remote(DEVICE_NAME, CONNECTION, PASSWORD, DEBUG_LEVEL)
 remote.set_profile(PROFILE)   # vor begin() aufrufen

@@ -18,6 +18,11 @@ _IRQ_CENTRAL_CONNECT    = 1
 _IRQ_CENTRAL_DISCONNECT = 2
 _IRQ_GATTS_WRITE        = 3
 
+# Max Bytes pro BLE-Notification.
+# Flutter fragt MTU=185 an → Nutzlast 182 Bytes. 180 Bytes Puffer lässt 2 Bytes Spielraum.
+# Größe bestimmt auch den GATT-Charakteristik-Puffer (gatts_set_buffer).
+_BLE_CHUNK = 180
+
 # GATT Charakteristik-Flags
 _FLAG_READ              = 0x0002
 _FLAG_WRITE_NO_RESPONSE = 0x0004
@@ -107,6 +112,8 @@ class CCARemoteBLE(CCARemote):
 
         # Empfangspuffer für Control-Charakteristik vergrößern
         self._ble.gatts_set_buffer(self._control_handle, 256, True)
+        # Sendepuffer für Display-Charakteristik auf Chunk-Größe setzen
+        self._ble.gatts_set_buffer(self._display_handle, _BLE_CHUNK)
 
         self._start_advertising()
 
@@ -244,15 +251,24 @@ class CCARemoteBLE(CCARemote):
                 self._command_received = True
 
     def _send_internal(self, key, value):
-        """Sendet einen Wert an die App via BLE NOTIFY."""
-        if self._connected and self._authenticated and self._display_handle is not None:
-            msg = (key + ":" + value + "\n").encode("utf-8")
+        """Sendet einen Wert an die App via BLE NOTIFY.
+
+        Große Nachrichten (z.B. profileConfig) werden in _BLE_CHUNK-große
+        Stücke aufgeteilt. Flutter akkumuliert alle Stücke im _rxBuffer
+        und verarbeitet die vollständige Nachricht erst nach dem abschließenden \n.
+        """
+        if not (self._connected and self._authenticated and self._display_handle is not None):
+            return
+        raw = (key + ":" + value + "\n").encode("utf-8")
+        for i in range(0, len(raw), _BLE_CHUNK):
+            chunk = raw[i : i + _BLE_CHUNK]
             try:
-                self._ble.gatts_write(self._display_handle, msg)
+                self._ble.gatts_write(self._display_handle, chunk)
                 if self._conn_handle is not None:
                     self._ble.gatts_notify(self._conn_handle, self._display_handle)
             except Exception as e:
                 print(self._ts() + "[CCA] BLE Sendefehler: " + str(e))
+                break
 
     def _resync_display(self):
         """Sendet alle gespeicherten Display-Werte erneut an die App."""
