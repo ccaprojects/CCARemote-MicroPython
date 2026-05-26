@@ -174,6 +174,7 @@ Um zwischen BLE und WiFi zu wechseln, nur `CONNECTION` ändern – der restliche
 | `remote.send("id", wert)` | Wert an Display-Element der App senden |
 | `remote.on_command("id", cb)` | Callback für Befehl registrieren |
 | `remote.watchdog("id", ms)` | Variable automatisch auf 0 setzen wenn länger als `ms` ms kein Update |
+| `remote.set_profile(config)` | Profil-Definition einbetten – wird beim Verbindungsaufbau an die App übertragen |
 | `remote.debug(modus)` | Debug-Level zur Laufzeit ändern |
 
 ### `receive()` – Variable mit App verknüpfen *(empfohlen)*
@@ -242,6 +243,24 @@ remote.on_command("btn", lambda: print("Button gedrückt!"))
 # Callback mit Wert
 remote.on_command("slider1", lambda v: print("Slider:", v))
 ```
+
+### `set_profile()` – Profil automatisch erstellen
+
+Bettet eine Profil-Definition in den Controller ein. Der Config-String wird beim Verbindungsaufbau an die App übertragen; die App erstellt das Profil automatisch, falls es noch nicht existiert, und wechselt dann zu diesem Profil.
+
+Den String generiert man in der App unter **Profil → Exportieren → „Als Arduino-String kopieren"**.
+
+```python
+# Exportierten Profil-String hier einfügen:
+PROFILE = "v:3|nm:MeinGerät|sl:speed:0:255@10,10,340,80|..."
+
+remote = create_remote(DEVICE_NAME, CONNECTION, PASSWORD, DEBUG_LEVEL)
+remote.set_profile(PROFILE)   # vor begin() aufrufen
+remote.begin()
+```
+
+> **Tipp:** `set_profile()` muss vor `begin()` aufgerufen werden, damit der String beim
+> ersten Verbindungsaufbau übertragen wird.
 
 ### `debug()` – Debug-Level zur Laufzeit ändern
 
