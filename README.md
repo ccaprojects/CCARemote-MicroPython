@@ -172,6 +172,7 @@ Um zwischen BLE und WiFi zu wechseln, nur `CONNECTION` ändern – der restliche
 | `remote.get("id", default)` | Zuletzt empfangenen Wert abrufen |
 | `remote.get_color("id")` | RGB-Werte als Tupel `(r, g, b)` abrufen (je 0–255) |
 | `remote.send("id", wert)` | Wert an Display-Element der App senden |
+| `remote.send_always("id", wert)` | Wie `send()`, aber auch bei gleichem Wert – für Charts |
 | `remote.on_command("id", cb)` | Callback für Befehl registrieren |
 | `remote.watchdog("id", ms)` | Variable automatisch auf 0 setzen wenn länger als `ms` ms kein Update |
 | `remote.set_profile(config)` | Profil-Definition einbetten – wird beim Verbindungsaufbau an die App übertragen |
@@ -203,6 +204,21 @@ remote.receive_color("color1", resync=True)   # Color Picker – Farbe bei Recon
 > remote.receive("axisY", int)  # Joystick Y (−255 – +255)
 > ```
 
+### `receive_color()` / `get_color()` – RGB-Farbwerte empfangen
+
+Verknüpft ein Color-Picker-Element; Werte werden als Tupel `(r, g, b)` (je 0–255) geliefert.
+
+```python
+remote.receive_color("color1")        # Element-ID aus der App registrieren
+r, g, b = remote.get_color("color1")  # RGB-Werte abrufen
+```
+
+Mit `resync=True` wird die zuletzt empfangene Farbe bei jedem Reconnect zur App zurückgesendet:
+
+```python
+remote.receive_color("color1", resync=True)
+```
+
 ### `send()` – Werte in der App anzeigen
 
 ```python
@@ -217,6 +233,15 @@ remote.send("display1:42")              # String-Form "key:value"
 > auch das **Label**-Element Werte empfangen. Wird `remote.send("label1", "Text")`
 > aufgerufen, aktualisiert die App den angezeigten Text des Labels dynamisch.
 > Die Element-ID muss dazu im Label-Editor der App eingetragen sein.
+
+### `send_always()` – Wert immer senden (für Charts)
+
+`send()` unterdrückt Duplikate und sendet nur bei Wertänderung. `send_always()` sendet bei jedem Aufruf — nötig für Chart-Elemente, die jeden einzelnen Messpunkt empfangen sollen.
+
+```python
+remote.send_always("chart1", sensor_wert)          # int
+remote.send_always("chart1", 3.14, 2)              # float mit 2 Nachkommastellen
+```
 
 ### `watchdog()` – Automatischer Nullwert bei Verbindungsverlust
 
@@ -273,6 +298,71 @@ remote.debug(CCA_DEBUG_ALL)   # IN + OUT ausgeben
 remote.debug(CCA_DEBUG_IN)    # nur empfangene Werte
 remote.debug(CCA_DEBUG_OUT)   # nur gesendete Werte
 remote.debug(CCA_DEBUG_OFF)   # kein Output
+```
+
+| Modus | Beschreibung |
+|---|---|
+| `CCA_DEBUG_OFF` | Kein Debug-Output |
+| `CCA_DEBUG_IN`  | Empfangene Werte ausgeben (`[CCA] IN  key = wert`) |
+| `CCA_DEBUG_OUT` | Gesendete Werte ausgeben (`[CCA] OUT key = wert`) |
+| `CCA_DEBUG_ALL` | Empfangene und gesendete Werte ausgeben |
+
+### Gerätename und Prefix anpassen
+
+```python
+remote = create_remote("Roboter", CONNECTION, PASSWORD, DEBUG_LEVEL,
+                       prefix="HTL-")  # → "HTL-Roboter"
+
+# Kein Prefix:
+remote = create_remote("Roboter", CONNECTION, PASSWORD, DEBUG_LEVEL,
+                       prefix="")      # → "Roboter"
+```
+
+---
+
+## Vollständiges Beispiel
+
+```python
+from machine import Pin, PWM
+import time
+from CCARemote import CCA_BLE, CCA_DEBUG_ALL, create_remote
+
+# ---- Konfiguration – hier anpassen! -----------------------
+DEVICE_NAME     = "MeinName"
+CONNECTION      = CCA_BLE
+PASSWORD        = ""
+DEBUG_LEVEL     = CCA_DEBUG_ALL
+DEBUG_TIMESTAMP = True
+# -----------------------------------------------------------
+
+remote = create_remote(DEVICE_NAME, CONNECTION, PASSWORD, DEBUG_LEVEL,
+                       show_timestamp=DEBUG_TIMESTAMP)
+
+LED_PIN = Pin("LED", Pin.OUT)
+pwm     = PWM(Pin(15)); pwm.freq(1000)  # PWM-fähiger Pin
+
+remote.begin()
+remote.receive("switch1",    bool)
+remote.receive("brightness", int)
+
+last_send = 0
+
+while True:
+    remote.handle()
+
+    if remote.is_connected():
+        LED_PIN.value(1 if remote.get("switch1", False) else 0)
+        pwm.duty_u16(remote.get("brightness", 0) * 257)  # 0–255 → 0–65535
+
+        now = time.ticks_ms()
+        if time.ticks_diff(now, last_send) >= 2000:
+            last_send = now
+            remote.send("uptime", time.ticks_ms() // 1000)
+    else:
+        LED_PIN.value(0)
+        pwm.duty_u16(0)
+
+    time.sleep_ms(10)
 ```
 
 ---
