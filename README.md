@@ -219,6 +219,38 @@ Mit `resync=True` wird die zuletzt empfangene Farbe bei jedem Reconnect zur App 
 remote.receive_color("color1", resync=True)
 ```
 
+### `receive()` – Mode Selector
+
+Der Mode Selector sendet bei jeder Auswahl den **Index** der gewählten Option (`0`, `1`, `2`, …) als `int`. Mit der Option **„Label senden"** in der App wird stattdessen der Label-Text als `str` übermittelt.
+
+```python
+# Standard: Index-Modus
+remote.receive("modus", int)
+
+# Mit Option „Label senden" aktiv:
+# remote.receive("modus", str)
+
+# Wert abrufen:
+modus = remote.get("modus", 0)       # int
+# modus = remote.get("modus", "Aus") # str
+
+# Index-Modus verwenden (0 = Aus, 1 = Langsam, 2 = Schnell):
+if modus == 0:
+    pass  # Aus
+elif modus == 1:
+    pass  # Langsam
+elif modus == 2:
+    pass  # Schnell
+
+# Label-Modus:
+# if modus == "Langsam": ...
+```
+
+| Einstellung | Typ | Empfangener Wert |
+|---|---|---|
+| Standard (Index) | `int` | `0`, `1`, `2`, … |
+| „Label senden" aktiv | `str` | `"Aus"`, `"Langsam"`, `"Schnell"`, … |
+
 ### `send()` – Werte in der App anzeigen
 
 ```python
@@ -381,6 +413,7 @@ while True:
 | Joystick | `receive()` | `int` | X und Y als separate Element-IDs |
 | Input | `receive()` | `str` | Freier Text |
 | Color Picker | `receive_color()` | – | Werte mit `get_color()` als `(r, g, b)` abrufen |
+| Mode Selector | `receive()` | `int` | Ausgewählter Index (0–N); mit Option „Label senden": `str` (Label-Text) |
 
 ## Anzeigeelemente (Pico → App)
 
