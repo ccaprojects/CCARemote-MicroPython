@@ -70,8 +70,8 @@ class CCARemoteBLE(CCARemote):
                 led.value(1 if remote.get("button1", False) else 0)
     """
 
-    def __init__(self, name, prefix="CCA-", password="", debug_level=0, show_timestamp=True):
-        super().__init__(name, prefix, debug_level, show_timestamp)
+    def __init__(self, name, prefix="CCA-", password="", debug_level=0, show_timestamp=True, persist=True):
+        super().__init__(name, prefix, debug_level, show_timestamp, persist)
         self._ble               = bluetooth.BLE()
         self._conn_handle       = None
         self._control_handle    = None
@@ -83,6 +83,7 @@ class CCARemoteBLE(CCARemote):
         self._pending_auth_fail       = False  # wird in handle() ausgewertet
         self._pending_resync          = False  # wird in handle() ausgewertet
         self._pending_fire_watchdogs  = False  # wird in handle() ausgewertet
+        self._pending_save            = False  # wird in handle() vor Watchdogs ausgewertet
 
     # ---------------------------------------------------------------- #
     #  Öffentliche Methoden                                             #
@@ -122,11 +123,15 @@ class CCARemoteBLE(CCARemote):
             pwd = self._password if self._debug_mode == CCA_DEBUG_ALL else "*" * len(self._password)
             print(self._ts() + "BLE Passwort: " + pwd)
         print(self._ts() + "Warte auf Verbindung...\n")
+        self._load_state()
 
     def handle(self):
         """Muss in der Hauptschleife aufgerufen werden!
         Verarbeitet empfangene BLE-Befehle.
         """
+        if self._pending_save:
+            self._pending_save = False
+            self._save_state()
         if self._pending_fire_watchdogs:
             self._pending_fire_watchdogs = False
             self._fire_all_watchdogs()
@@ -195,6 +200,7 @@ class CCARemoteBLE(CCARemote):
             self._connected              = False
             self._authenticated          = False
             self._restart_advertise      = True   # Neustart in handle() – nicht hier!
+            self._pending_save           = True   # _save_state() in handle() vor Watchdogs
             self._pending_fire_watchdogs = True   # _fire_all_watchdogs() in handle()
             if self._debug_mode:
                 print(self._ts() + "[CCA] Verbindung getrennt")
@@ -270,7 +276,3 @@ class CCARemoteBLE(CCARemote):
                 print(self._ts() + "[CCA] BLE Sendefehler: " + str(e))
                 break
 
-    def _resync_display(self):
-        """Sendet alle gespeicherten Display-Werte erneut an die App."""
-        for key, value in self._display_values.items():
-            self._send_internal(key, value)

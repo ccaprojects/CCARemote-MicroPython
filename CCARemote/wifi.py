@@ -43,8 +43,8 @@ class CCARemoteWiFi(CCARemote):
                 led.value(1 if remote.get("switch1", False) else 0)
     """
 
-    def __init__(self, name, prefix="CCA-", password="", port=4210, debug_level=0, show_timestamp=True):
-        super().__init__(name, prefix, debug_level, show_timestamp)
+    def __init__(self, name, prefix="CCA-", password="", port=4210, debug_level=0, show_timestamp=True, persist=True):
+        super().__init__(name, prefix, debug_level, show_timestamp, persist)
         self._password          = password
         self._port              = port
         self._ap                = None
@@ -103,6 +103,7 @@ class CCARemoteWiFi(CCARemote):
         print(self._ts() + "TCP Server läuft auf Port " + str(self._port))
 
         print(self._ts() + "CCA Remote bereit!\n")
+        self._load_state()
 
     def handle(self):
         """Muss in der Hauptschleife aufgerufen werden!
@@ -136,11 +137,7 @@ class CCARemoteWiFi(CCARemote):
                 self._tcp_buf    = ""
                 self._last_rx_ms = time.ticks_ms()
                 self._reset_watchdog_timers()
-                for k, v in self._display_values.items():
-                    try:
-                        conn.sendall("{}:{}\n".format(k, v).encode())
-                    except OSError:
-                        break
+                self._resync_display()
             except OSError:
                 pass
 
@@ -177,6 +174,7 @@ class CCARemoteWiFi(CCARemote):
 
     def _tcp_disconnect(self):
         if self._tcp_client:
+            self._save_state()
             try:
                 self._tcp_client.close()
             except Exception:

@@ -8,7 +8,7 @@
 import time
 
 # Version der Bibliothek
-__version__ = "1.2.0"
+__version__ = "1.2.1"
 # Protokollversion – wird nur bei Breaking Changes erhöht (synchron mit Arduino-Lib und App)
 CCA_PROTOCOL_VERSION = "2"
 CCA_PLATFORM         = "micropython"
@@ -33,10 +33,12 @@ class CCARemote:
     Verwende: create_remote(), CCARemoteBLE, CCARemoteWiFi, CCARemoteMQTT
     """
 
-    def __init__(self, name, prefix="CCA-", debug_level=CCA_DEBUG_OFF, show_timestamp=True):
+    def __init__(self, name, prefix="CCA-", debug_level=CCA_DEBUG_OFF, show_timestamp=True, persist=True):
         self._device_name      = prefix + name
         self._debug_mode       = debug_level
         self._show_timestamp   = show_timestamp
+        self._persist          = persist
+        self._state_loaded     = False
         self._command_received = False
         self._last_command     = ""
         # cmd → callback (ohne oder mit Wert-Parameter)
@@ -330,10 +332,12 @@ class CCARemote:
 
     def _resync_display(self):
         """Sendet alle gespeicherten Display-Werte erneut an die App."""
+        if self._persist and not self._state_loaded:
+            self._load_state()
+            self._state_loaded = True
         for key, value in self._display_values.items():
             self._send_internal(key, value)
-        for cmd in self._resync_keys:
-            val = self._values.get(cmd)
+        for cmd, val in self._values.items():
             if val is None:
                 continue
             if cmd in self._color_keys:
@@ -345,6 +349,36 @@ class CCARemote:
                 self._send_internal(cmd, "{:.1f}".format(val))
             else:
                 self._send_internal(cmd, str(val))
+
+    def _save_state(self):
+        """Persistiert _values in /cca_state.json (nur wenn persist=True)."""
+        if not self._persist:
+            return
+        try:
+            import json
+            serializable = {}
+            for k, v in self._values.items():
+                serializable[k] = list(v) if isinstance(v, tuple) else v
+            with open("/cca_state.json", "w") as f:
+                json.dump(serializable, f)
+        except Exception:
+            pass
+
+    def _load_state(self):
+        """Lädt _values aus /cca_state.json (nur wenn persist=True)."""
+        if not self._persist:
+            return
+        try:
+            import json
+            with open("/cca_state.json", "r") as f:
+                data = json.load(f)
+            for k, v in data.items():
+                if k in self._color_keys and isinstance(v, list) and len(v) == 3:
+                    self._values[k] = tuple(v)
+                else:
+                    self._values[k] = v
+        except (OSError, ValueError):
+            pass
 
     # ---------------------------------------------------------------- #
     #  Interne Hilfsmethode                                             #
@@ -397,7 +431,7 @@ class CCARemote:
 # ------------------------------------------------------------------ #
 
 def create_remote(name, connection=CCA_BLE, password="", debug_level=CCA_DEBUG_OFF,
-                prefix="CCA-", port=4210, show_timestamp=True):
+                prefix="CCA-", port=4210, show_timestamp=True, persist=True):
     """Erstellt das passende remote-Objekt anhand der Konfigurationsparameter.
 
     Empfohlene Verwendung:
@@ -418,14 +452,15 @@ def create_remote(name, connection=CCA_BLE, password="", debug_level=CCA_DEBUG_O
         debug_level: CCA_DEBUG_OFF / CCA_DEBUG_IN / CCA_DEBUG_OUT / CCA_DEBUG_ALL
         prefix:      Geräte-Präfix (Standard: "CCA-")
         port:        TCP-Port (Standard: 4210, nur WiFi)
+        persist:     True (Standard) = Zustände in /cca_state.json speichern
     """
     if connection == CCA_WIFI:
         from CCARemote.wifi import CCARemoteWiFi
         return CCARemoteWiFi(name, prefix=prefix, password=password,
                             port=port, debug_level=debug_level,
-                            show_timestamp=show_timestamp)
+                            show_timestamp=show_timestamp, persist=persist)
     else:
         from CCARemote.ble import CCARemoteBLE
         return CCARemoteBLE(name, prefix=prefix, password=password,
                             debug_level=debug_level,
-                            show_timestamp=show_timestamp)
+                            show_timestamp=show_timestamp, persist=persist)

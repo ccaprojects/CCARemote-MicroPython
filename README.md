@@ -155,6 +155,7 @@ Um zwischen BLE und WiFi zu wechseln, nur `CONNECTION` ändern – der restliche
 | `DEBUG_TIMESTAMP` | `True` | `True` = Zeitstempel im Debug-Output / `False` = ohne Zeitstempel |
 | `DEVICE_PREFIX` | `"CCA-"` | Prefix für den Gerätenamen (optionaler Parameter von `create_remote`) |
 | `TCP_PORT` | `4210` | TCP-Port (optionaler Parameter von `create_remote`, nur WiFi) |
+| `persist` | `True` | Zustandsspeicherung in `/cca_state.json` – `False` deaktiviert die Persistenz |
 
 ---
 
@@ -274,6 +275,29 @@ remote.send("display1:42")              # String-Form "key:value"
 remote.send_always("chart1", sensor_wert)          # int
 remote.send_always("chart1", 3.14, 2)              # float mit 2 Nachkommastellen
 ```
+
+### Persistente Zustandsspeicherung
+
+Variablenwerte werden beim Trennen der Verbindung automatisch in `/cca_state.json` gespeichert und beim nächsten Start wiederhergestellt — auch nach Neustart oder Stromverlust.
+
+```python
+# Standard: persist=True – Werte werden automatisch gespeichert
+remote = create_remote(DEVICE_NAME, CONNECTION, PASSWORD, DEBUG_LEVEL)
+
+# Deaktivieren:
+remote = create_remote(DEVICE_NAME, CONNECTION, PASSWORD, DEBUG_LEVEL, persist=False)
+```
+
+Ablauf beim Connect nach einem Neustart:
+1. `begin()` lädt Werte aus `/cca_state.json`
+2. Bei Verbindungsaufbau überträgt der Pico alle gespeicherten Werte an die App
+3. Die App zeigt den letzten Zustand sofort an — ohne Interaktion des Benutzers
+
+Gespeichert werden alle über `receive()` registrierten Typen (`bool`, `int`, `float`, `str`) sowie Farben (`receive_color()`). Die Datei `/cca_state.json` liegt im Root-Dateisystem des Pico und wird automatisch angelegt.
+
+> **Hinweis:** Die Persistenz ergänzt `resync=True` — `resync=True` sendet den aktuellen
+> In-Memory-Wert bei jedem Reconnect; die Persistenz stellt zusätzlich sicher, dass dieser
+> Wert auch nach einem Neustart noch korrekt ist.
 
 ### `watchdog()` – Automatischer Nullwert bei Verbindungsverlust
 
@@ -485,6 +509,7 @@ while True:
 ```
 /                       ← Root-Dateisystem des Pico
 ├── main.py             ← Dein Programm (wird beim Start ausgeführt)
+├── cca_state.json      ← Persistente Zustandsdaten (automatisch erstellt, nur wenn persist=True)
 └── lib/
     └── CCARemote/
         ├── __init__.py
