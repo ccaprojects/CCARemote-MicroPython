@@ -206,6 +206,19 @@ class CCARemote:
         """
         self._display_values["profileConfig"] = config_string
 
+    def clear_state(self):
+        """Löscht alle persistierten Zustände (/cca_state.json).
+
+        Beim Wechsel zu einem Profil mit anderen Element-IDs aufrufen,
+        um veraltete Einträge zu entfernen.
+        """
+        try:
+            import os
+            os.remove("/cca_state.json")
+        except OSError:
+            pass
+        self._state_loaded = True  # kein erneutes Laden beim nächsten Connect
+
     def get(self, cmd, default=None):
         """Gibt den zuletzt empfangenen Wert für eine Element-ID zurück.
 

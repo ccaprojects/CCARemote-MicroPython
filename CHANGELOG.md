@@ -10,6 +10,7 @@ Format orientiert sich an [Keep a Changelog](https://keepachangelog.com/de/1.0.0
 ### Neu
 - **Persistente Zustandsspeicherung:** Variablenwerte (`receive()`, `receive_color()`) werden beim Disconnect automatisch in `/cca_state.json` gespeichert und nach einem Neustart oder Stromverlust wiederhergestellt. Mit `persist=False` in `create_remote()` deaktivierbar.
 - **Vollständiger Resync beim Connect:** Beim Verbindungsaufbau überträgt der Controller alle registrierten Variablenwerte an die App – nicht nur Variablen mit `resync=True`.
+- **`clear_state()`:** Löscht `/cca_state.json`. Nützlich beim Wechsel zu einem Profil mit anderen Element-IDs, um veraltete Einträge zu entfernen.
 
 ### Behoben
 - **BLE:** Eigene `_resync_display()`-Implementierung in `ble.py` sendete nur `_display_values` und unterdrückte damit den Lazy-Load aus der persistenten Datei sowie die Übertragung aller Steuerwerte.
@@ -27,6 +28,7 @@ Format orientiert sich an [Keep a Changelog](https://keepachangelog.com/de/1.0.0
 - Watchdog-Mechanismus: Variable automatisch auf 0 setzen bei Verbindungsabbruch
 - `debug()` – Debug-Level zur Laufzeit ändern
 - Mode Selector: Index- und Label-Modus
+- Werte von Label, Slider- und Switch-Elementen können nun vom Controller an die App übergeben werden
 
 ---
 
@@ -44,10 +46,10 @@ Format orientiert sich an [Keep a Changelog](https://keepachangelog.com/de/1.0.0
 
 ---
 
-## [1.0.0] – 2025-xx-xx
+## [1.0.0] – 2025-05-11
 
 ### Erstveröffentlichung
-- BLE-Verbindung (Raspberry Pi Pico 2 W)
+- BLE-Verbindung (Raspberry Pi Pico 2 W + ESP32)
 - WiFi-Verbindung (Access Point + TCP)
 - `receive()` für `bool`, `int`, `float`, `str`
 - `receive_color()` / `get_color()` für RGB-Color-Picker

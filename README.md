@@ -299,6 +299,14 @@ Gespeichert werden alle über `receive()` registrierten Typen (`bool`, `int`, `f
 > In-Memory-Wert bei jedem Reconnect; die Persistenz stellt zusätzlich sicher, dass dieser
 > Wert auch nach einem Neustart noch korrekt ist.
 
+**Persistierten Zustand löschen:** Beim Wechsel zu einem Profil mit anderen Element-IDs können veraltete Einträge in `/cca_state.json` gelöscht werden:
+
+```python
+remote.clear_state()  # löscht /cca_state.json
+```
+
+`clear_state()` greift nur in den gespeicherten Zustand ein — die aktuellen In-Memory-Werte der laufenden Session bleiben unverändert.
+
 ### `watchdog()` – Automatischer Nullwert bei Verbindungsverlust
 
 Setzt eine Variable automatisch auf `0` zurück wenn sie länger als das angegebene Timeout nicht aktualisiert wurde. Typischer Anwendungsfall: Joystick-Achsen bei RC-Fahrzeugen.
