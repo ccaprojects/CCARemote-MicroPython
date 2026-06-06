@@ -177,6 +177,7 @@ Um zwischen BLE und WiFi zu wechseln, nur `CONNECTION` ändern – der restliche
 | `remote.on_command("id", cb)` | Callback für Befehl registrieren |
 | `remote.watchdog("id", ms)` | Variable automatisch auf 0 setzen wenn länger als `ms` ms kein Update |
 | `remote.set_profile(config)` | Profil-Definition einbetten – wird beim Verbindungsaufbau an die App übertragen |
+| `remote.load_state()` | Letzten Zustand sofort aus `/cca_state.json` laden (ohne App-Verbindung) |
 | `remote.debug(modus)` | Debug-Level zur Laufzeit ändern |
 
 ### `receive()` – Variable mit App verknüpfen *(empfohlen)*
@@ -298,6 +299,20 @@ Gespeichert werden alle über `receive()` registrierten Typen (`bool`, `int`, `f
 > **Hinweis:** Die Persistenz ergänzt `resync=True` — `resync=True` sendet den aktuellen
 > In-Memory-Wert bei jedem Reconnect; die Persistenz stellt zusätzlich sicher, dass dieser
 > Wert auch nach einem Neustart noch korrekt ist.
+
+**Letzten Zustand beim Start laden:** Standardmäßig werden die gespeicherten Werte erst beim ersten App-Connect in die Variablen geladen. Mit `load_state()` kann der Zustand bereits beim Start befüllt werden — ohne dass eine Verbindung nötig ist. Nützlich wenn der Controller ohne App sofort mit den letzten Einstellungen laufen soll (z. B. Licht, Effekt, Farbe):
+
+```python
+remote.begin()
+remote.receive("switch1", bool, resync=True)
+remote.receive("slider1", int,  resync=True)
+remote.receive_color("color1",  resync=True)
+
+remote.load_state()   # letzte Einstellungen sofort laden
+                      # Ohne diese Zeile: Laden beim ersten App-Connect (bisheriges Verhalten)
+```
+
+> **Hinweis:** `load_state()` muss nach allen `receive()`-Aufrufen aufgerufen werden. Nur wirksam wenn `persist=True` (Standard).
 
 **Persistierten Zustand löschen:** Beim Wechsel zu einem Profil mit anderen Element-IDs können veraltete Einträge in `/cca_state.json` gelöscht werden:
 
@@ -505,6 +520,8 @@ while True:
 | `#define ... #include <CCARemote.h>` | `create_remote(DEVICE_NAME, CONNECTION, ...)` |
 | `remote.isConnected()` | `remote.is_connected()` |
 | `bool var; remote.receive("id", var)` | `remote.receive("id", bool)` + `remote.get("id")` |
+| `remote.loadState()` | `remote.load_state()` |
+| `remote.clearState()` | `remote.clear_state()` |
 | `analogWrite(pin, val)` | `PWM(Pin(nr)).duty_u16(val * 257)` |
 | `Serial.println(...)` | `print(...)` |
 | `millis()` | `time.ticks_ms()` |

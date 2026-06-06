@@ -206,6 +206,27 @@ class CCARemote:
         """
         self._display_values["profileConfig"] = config_string
 
+    def load_state(self):
+        """Lädt den letzten gespeicherten Zustand sofort aus /cca_state.json.
+
+        Im Gegensatz zum automatischen Laden beim ersten App-Connect werden
+        die Werte damit bereits beim Start befüllt — ohne dass eine Verbindung
+        nötig ist. Nützlich wenn der Controller ohne App-Verbindung sofort mit
+        den letzten Einstellungen laufen soll (z. B. Licht, Effekt, Farbe).
+
+        Muss nach allen receive()-Aufrufen und vor der Hauptschleife aufgerufen werden.
+        Ohne diesen Aufruf ist das Verhalten wie bisher: Laden beim ersten App-Connect.
+
+        Beispiel:
+            remote.begin()
+            remote.receive("switch1", bool, resync=True)
+            remote.receive("slider1", int,  resync=True)
+            remote.receive_color("color1",  resync=True)
+            remote.load_state()   # letzte Einstellungen sofort laden
+        """
+        self._load_state()
+        self._state_loaded = True
+
     def clear_state(self):
         """Löscht alle persistierten Zustände (/cca_state.json).
 
